@@ -1,0 +1,13 @@
+[project]
+name = "arbi-backend"
+version = "0.1.0"
+description = "Arbi Python Backend (FastAPI)"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.104.0",
+  "uvicorn[standard]",
+  "pydantic>=2.0",
+]
+
+[tool.uv]
+package = false
