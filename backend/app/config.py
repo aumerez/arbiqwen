@@ -42,6 +42,17 @@ class Settings(BaseSettings):
         description="Seconds before a pooled connection is recycled — guards against stale conns behind proxies",
     )
 
+    # JWT — the default is an insecure dev value so the app boots out of the
+    # box. Set a strong random 32+ byte JWT_SECRET for any shared or prod
+    # deployment.
+    JWT_SECRET: str = Field(
+        "dev-insecure-secret-change-me-32-bytes-min",
+        min_length=32,
+        description="HS256 signing key. Override with a strong random value in production.",
+    )
+    JWT_EXPIRES_IN: str = Field("15m", description="Access token lifetime (e.g. 15m, 2h, 1d)")
+    REFRESH_TOKEN_EXPIRES_IN: str = Field("7d", description="Refresh token lifetime")
+
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent.parent / ".env",
         env_file_encoding="utf-8",
