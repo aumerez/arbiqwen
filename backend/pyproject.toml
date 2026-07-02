@@ -14,6 +14,7 @@ dependencies = [
   "asyncpg>=0.29",    # PostgreSQL async driver — production default
   "aiosqlite>=0.19",  # SQLite async driver — one-off scripts
   "greenlet>=3.0",    # required by SQLAlchemy async
+  "python-json-logger>=2.0",
 ]
 
 [tool.uv]
