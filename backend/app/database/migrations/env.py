@@ -11,6 +11,9 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.database.base import Base
 
+# Import model modules so their tables register on Base.metadata for autogenerate.
+import app.auth.models  # noqa: F401
+
 # Load .env file so DATABASE_URL is available without setting system env vars
 load_dotenv(Path(__file__).resolve().parents[3] / ".env")
 
