@@ -53,6 +53,29 @@ class Settings(BaseSettings):
     JWT_EXPIRES_IN: str = Field("15m", description="Access token lifetime (e.g. 15m, 2h, 1d)")
     REFRESH_TOKEN_EXPIRES_IN: str = Field("7d", description="Refresh token lifetime")
 
+    # LLM provider
+    LLM_PROVIDER: str = Field("anthropic", description="Active LLM provider key")
+    ANTHROPIC_API_KEY: str | None = Field(None, description="Anthropic API key (required to make live calls)")
+    ANTHROPIC_BASE_URL: str | None = Field(None, description="Override the Anthropic API base URL")
+    ANTHROPIC_MODEL: str = Field("claude-sonnet-4-6", description="Default Claude model")
+
+    # Embeddings
+    EMBEDDING_PROVIDER: str = Field("openai", description="Active embedding provider key")
+    OPENAI_API_KEY: str | None = Field(None, description="OpenAI API key (required for live embedding calls)")
+    OPENAI_BASE_URL: str | None = Field(None, description="Override the OpenAI API base URL")
+    OPENAI_EMBEDDING_MODEL: str = Field("text-embedding-3-small", description="OpenAI embedding model (1536-dim)")
+
+    # Reranker (cross-encoder over retrieval results)
+    ENABLE_RERANKER: bool = Field(True, description="Enable cross-encoder reranking in the RAG pipeline")
+    RERANKER_PROVIDER: str = Field("local", description="Reranker implementation key")
+    RERANKER_MODEL: str = Field("BAAI/bge-reranker-large", description="Cross-encoder model for reranking")
+
+    # Vector store (Qdrant)
+    QDRANT_URL: str = Field("http://localhost:6333", description="Qdrant HTTP URL")
+    QDRANT_API_KEY: str | None = Field(None, description="Qdrant API key (empty for local instances)")
+    QDRANT_COLLECTION: str = Field("documents", description="Default collection name")
+    QDRANT_VECTOR_SIZE: int = Field(1536, description="Embedding dimension for the default collection")
+
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent.parent / ".env",
         env_file_encoding="utf-8",
