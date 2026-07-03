@@ -1,0 +1,138 @@
+/* Page + card styling — recreated from the desktop Integrations/Skills/RAG pages. */
+
+.page__header {
+  padding: 28px 32px 20px;
+}
+
+.page__title {
+  margin: 0 0 2px;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.page__desc {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.card-list {
+  list-style: none;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 32px 32px;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition);
+}
+
+.card:hover {
+  border-color: var(--border-strong);
+}
+
+.card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.card__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card__name {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card__desc {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card__meta {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.card__metric {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* Badges */
+.badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 3px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge--on {
+  color: var(--success);
+  background: var(--success-muted);
+}
+
+.badge--off {
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+}
+
+.badge--read {
+  color: var(--chip-fg);
+  background: var(--chip-bg);
+}
+
+.connected-check {
+  display: inline-flex;
+  align-items: center;
+  color: var(--success);
+}
+
+.empty {
+  margin: 0 32px;
+  padding: 1rem;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 13px;
+}

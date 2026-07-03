@@ -3,32 +3,29 @@ import type { ReactNode } from 'react';
 interface SectionProps {
   id: string;
   title: string;
-  blurb: string;
+  description: string;
   count: number;
   emptyLabel: string;
   children: ReactNode;
 }
 
-// Read-only section shell: a labelled heading, a short blurb, and either a grid
-// of cards or a safe empty state. It renders no action controls of any kind.
-export function Section({ id, title, blurb, count, emptyLabel, children }: SectionProps) {
+// A read-only page section: header (title + blurb) and either a card list or a
+// safe empty state. No action controls.
+export function Section({ id, title, description, count, emptyLabel, children }: SectionProps) {
   return (
-    <section className="section" id={id} aria-labelledby={`heading-${id}`} data-section={id}>
-      <div className="section__head">
-        <h2 id={`heading-${id}`} className="section__title">
+    <section data-section={id} aria-labelledby={`heading-${id}`}>
+      <div className="page__header">
+        <h1 id={`heading-${id}`} className="page__title">
           {title}
-        </h2>
-        <span className="section__count" aria-hidden="true">
-          {count}
-        </span>
+        </h1>
+        <p className="page__desc">{description}</p>
       </div>
-      <p className="section__blurb">{blurb}</p>
       {count === 0 ? (
-        <p className="section__empty" role="status">
+        <p className="empty" role="status">
           {emptyLabel}
         </p>
       ) : (
-        <ul className="card-grid">{children}</ul>
+        <ul className="card-list">{children}</ul>
       )}
     </section>
   );

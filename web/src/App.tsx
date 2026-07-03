@@ -1,45 +1,34 @@
-import { INTEGRATIONS, SKILLS, RAG_SOURCES } from './demo-data';
+import { useState } from 'react';
+import { Database, Plug, Zap } from 'lucide-react';
+import { AppShell } from './components/AppShell';
+import type { NavItem } from './components/Sidebar';
 import { Section } from './components/Section';
 import { IntegrationCard } from './components/IntegrationCard';
 import { SkillCard } from './components/SkillCard';
 import { RagSourceCard } from './components/RagSourceCard';
-import './App.css';
+import { INTEGRATIONS, RAG_SOURCES, SKILLS } from './demo-data';
 
-// Read-only browser preview. It exposes exactly three surfaces — Integrations,
-// Skills, and RAG sources — as view-only content backed by local demo data.
-//
-// There is no navigation to, or rendering of, any other surface, and no control
-// that connects, runs, edits, or removes anything. In-page navigation uses
-// hash anchors only. The app renders with no backend, session, token, or
-// global bridge object.
-const NAV = [
-  { id: 'integrations', label: 'Integrations' },
-  { id: 'skills', label: 'Skills' },
-  { id: 'rag-sources', label: 'RAG sources' },
+// Read-only browser preview, styled to match the desktop app. The shell
+// (top bar, Mono sidebar, status bar) frames exactly three sections —
+// Integrations, Skills, RAG sources — backed by local demo data. Sidebar nav
+// switches the active section client-side; nothing connects, runs, or mutates.
+const NAV: NavItem[] = [
+  { id: 'integrations', label: 'Integrations', icon: Plug },
+  { id: 'skills', label: 'Skills', icon: Zap },
+  { id: 'rag-sources', label: 'Knowledge Bases', icon: Database },
 ];
 
 export default function App() {
-  return (
-    <div className="app">
-      <header className="app__header">
-        <div className="app__brand">
-          <h1 className="app__title">Arbi</h1>
-          <p className="app__subtitle">Read-only preview</p>
-        </div>
-        <nav className="app__nav" aria-label="Preview sections">
-          {NAV.map((entry) => (
-            <a key={entry.id} className="app__navlink" href={`#${entry.id}`}>
-              {entry.label}
-            </a>
-          ))}
-        </nav>
-      </header>
+  const [active, setActive] = useState('integrations');
+  const section = NAV.find((n) => n.id === active) ?? NAV[0];
 
-      <main className="app__main">
+  return (
+    <AppShell items={NAV} activeId={active} sectionLabel={section.label} onNavigate={setActive}>
+      {active === 'integrations' && (
         <Section
           id="integrations"
           title="Integrations"
-          blurb="Data sources available to a workspace, shown as read-only entries."
+          description="Data sources available to this workspace, shown as read-only entries."
           count={INTEGRATIONS.length}
           emptyLabel="No integrations to show."
         >
@@ -47,11 +36,13 @@ export default function App() {
             <IntegrationCard key={item.id} item={item} />
           ))}
         </Section>
+      )}
 
+      {active === 'skills' && (
         <Section
           id="skills"
           title="Skills"
-          blurb="Reusable capabilities a workspace can offer, listed for reference."
+          description="Reusable capabilities available to this workspace, listed for reference."
           count={SKILLS.length}
           emptyLabel="No skills to show."
         >
@@ -59,11 +50,13 @@ export default function App() {
             <SkillCard key={item.id} item={item} />
           ))}
         </Section>
+      )}
 
+      {active === 'rag-sources' && (
         <Section
           id="rag-sources"
-          title="RAG sources"
-          blurb="Knowledge collections that ground answers, listed with high-level stats."
+          title="RAG Sources"
+          description="Knowledge collections that ground answers, listed with high-level stats."
           count={RAG_SOURCES.length}
           emptyLabel="No knowledge sources to show."
         >
@@ -71,11 +64,7 @@ export default function App() {
             <RagSourceCard key={item.id} item={item} />
           ))}
         </Section>
-      </main>
-
-      <footer className="app__footer">
-        <p>This preview is view-only and does not modify any data.</p>
-      </footer>
-    </div>
+      )}
+    </AppShell>
   );
 }

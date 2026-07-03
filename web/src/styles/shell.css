@@ -1,0 +1,231 @@
+/* App shell chrome — recreated from the desktop AppShell/Sidebar/TopBar/StatusBar. */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: var(--bg-primary);
+}
+
+.shell__body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.shell__content {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  background: var(--bg-primary);
+}
+
+/* ── Top bar (Mono chrome) ─────────────────────────────────────────── */
+.topbar {
+  height: var(--topbar-height);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  background: var(--arbi-mono);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+.topbar__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.topbar__crumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.topbar__crumb-sep {
+  color: rgba(245, 243, 238, 0.15);
+}
+
+.topbar__crumb-current {
+  color: #cbd5e1;
+}
+
+.topbar__spacer {
+  flex: 1;
+}
+
+.topbar__tenant {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar__tenant-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  background: var(--info);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.topbar__tenant-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+/* ── Sidebar (Mono chrome) ─────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--arbi-mono);
+  border-right: 1px solid rgba(0, 0, 0, 0.3);
+  padding: 8px 0;
+}
+
+.sidebar__project {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  color: #cbd5e1;
+}
+
+.sidebar__project-icon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.sidebar__project-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar__sep {
+  height: 1px;
+  background: rgba(245, 243, 238, 0.06);
+  margin: 6px 12px;
+}
+
+.sidebar__label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #94a3b8;
+  padding: 12px 18px 6px;
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 8px;
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.sidebar__link:hover {
+  background: var(--bg-hover);
+  color: #f1f5f9;
+}
+
+.sidebar__link--active {
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.sidebar__link-icon {
+  flex-shrink: 0;
+}
+
+.sidebar__spacer {
+  flex: 1;
+}
+
+.sidebar__foot {
+  padding: 8px 18px;
+  border-top: 1px solid rgba(245, 243, 238, 0.06);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+/* ── Status bar ────────────────────────────────────────────────────── */
+.statusbar {
+  height: var(--statusbar-height);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 16px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.statusbar__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+.statusbar__sep {
+  color: var(--border-strong);
+}
+
+.statusbar__spacer {
+  flex: 1;
+}

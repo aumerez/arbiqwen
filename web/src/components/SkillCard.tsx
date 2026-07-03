@@ -1,20 +1,22 @@
+import { Zap } from 'lucide-react';
 import type { SkillDemo } from '../demo-data';
 
-// Read-only card for a single skill. No action controls.
+// Read-only skill row, styled like the desktop SkillCard. No toggle/configure.
 export function SkillCard({ item }: { item: SkillDemo }) {
+  const active = item.status === 'Active';
   return (
     <li className="card" data-card="skill">
-      <div className="card__top">
-        <span className="card__name">{item.name}</span>
-        <span className={`badge badge--${item.status.toLowerCase()}`}>{item.status}</span>
+      <span className="card__icon">
+        <Zap size={18} strokeWidth={1.5} />
+      </span>
+      <div className="card__content">
+        <p className="card__name">{item.name}</p>
+        <p className="card__desc">{item.description}</p>
       </div>
-      <p className="card__detail">{item.description}</p>
-      <dl className="meta">
-        <div className="meta__row">
-          <dt>Category</dt>
-          <dd>{item.category}</dd>
-        </div>
-      </dl>
+      <div className="card__meta">
+        <span className="card__metric">{item.category}</span>
+        <span className={`badge ${active ? 'badge--on' : 'badge--off'}`}>{item.status}</span>
+      </div>
     </li>
   );
 }
