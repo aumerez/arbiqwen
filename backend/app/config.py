@@ -65,6 +65,11 @@ class Settings(BaseSettings):
     OPENAI_BASE_URL: str | None = Field(None, description="Override the OpenAI API base URL")
     OPENAI_EMBEDDING_MODEL: str = Field("text-embedding-3-small", description="OpenAI embedding model (1536-dim)")
 
+    # Reranker (cross-encoder over retrieval results)
+    ENABLE_RERANKER: bool = Field(True, description="Enable cross-encoder reranking in the RAG pipeline")
+    RERANKER_PROVIDER: str = Field("local", description="Reranker implementation key")
+    RERANKER_MODEL: str = Field("BAAI/bge-reranker-large", description="Cross-encoder model for reranking")
+
     # Vector store (Qdrant)
     QDRANT_URL: str = Field("http://localhost:6333", description="Qdrant HTTP URL")
     QDRANT_API_KEY: str | None = Field(None, description="Qdrant API key (empty for local instances)")

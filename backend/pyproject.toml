@@ -21,6 +21,7 @@ dependencies = [
   "anthropic>=0.40",
   "qdrant-client>=1.7.0",
   "openai>=1.0",
+  "sentence-transformers>=2.2",
 ]
 
 [tool.uv]
