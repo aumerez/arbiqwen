@@ -53,6 +53,12 @@ class Settings(BaseSettings):
     JWT_EXPIRES_IN: str = Field("15m", description="Access token lifetime (e.g. 15m, 2h, 1d)")
     REFRESH_TOKEN_EXPIRES_IN: str = Field("7d", description="Refresh token lifetime")
 
+    # LLM provider
+    LLM_PROVIDER: str = Field("anthropic", description="Active LLM provider key")
+    ANTHROPIC_API_KEY: str | None = Field(None, description="Anthropic API key (required to make live calls)")
+    ANTHROPIC_BASE_URL: str | None = Field(None, description="Override the Anthropic API base URL")
+    ANTHROPIC_MODEL: str = Field("claude-sonnet-4-6", description="Default Claude model")
+
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent.parent / ".env",
         env_file_encoding="utf-8",
