@@ -59,6 +59,12 @@ class Settings(BaseSettings):
     ANTHROPIC_BASE_URL: str | None = Field(None, description="Override the Anthropic API base URL")
     ANTHROPIC_MODEL: str = Field("claude-sonnet-4-6", description="Default Claude model")
 
+    # Vector store (Qdrant)
+    QDRANT_URL: str = Field("http://localhost:6333", description="Qdrant HTTP URL")
+    QDRANT_API_KEY: str | None = Field(None, description="Qdrant API key (empty for local instances)")
+    QDRANT_COLLECTION: str = Field("documents", description="Default collection name")
+    QDRANT_VECTOR_SIZE: int = Field(1536, description="Embedding dimension for the default collection")
+
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent.parent / ".env",
         env_file_encoding="utf-8",
