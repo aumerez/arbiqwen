@@ -59,6 +59,12 @@ class Settings(BaseSettings):
     ANTHROPIC_BASE_URL: str | None = Field(None, description="Override the Anthropic API base URL")
     ANTHROPIC_MODEL: str = Field("claude-sonnet-4-6", description="Default Claude model")
 
+    # Embeddings
+    EMBEDDING_PROVIDER: str = Field("openai", description="Active embedding provider key")
+    OPENAI_API_KEY: str | None = Field(None, description="OpenAI API key (required for live embedding calls)")
+    OPENAI_BASE_URL: str | None = Field(None, description="Override the OpenAI API base URL")
+    OPENAI_EMBEDDING_MODEL: str = Field("text-embedding-3-small", description="OpenAI embedding model (1536-dim)")
+
     # Vector store (Qdrant)
     QDRANT_URL: str = Field("http://localhost:6333", description="Qdrant HTTP URL")
     QDRANT_API_KEY: str | None = Field(None, description="Qdrant API key (empty for local instances)")
