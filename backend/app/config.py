@@ -70,6 +70,10 @@ class Settings(BaseSettings):
     RERANKER_PROVIDER: str = Field("local", description="Reranker implementation key")
     RERANKER_MODEL: str = Field("BAAI/bge-reranker-large", description="Cross-encoder model for reranking")
 
+    # Storage (document files)
+    STORAGE_PROVIDER: str = Field("local", description="File storage backend")
+    STORAGE_LOCAL_PATH: str = Field("./uploads", description="Local storage root for uploaded files")
+
     # Vector store (Qdrant)
     QDRANT_URL: str = Field("http://localhost:6333", description="Qdrant HTTP URL")
     QDRANT_API_KEY: str | None = Field(None, description="Qdrant API key (empty for local instances)")
