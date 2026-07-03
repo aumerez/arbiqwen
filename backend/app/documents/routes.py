@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.database.connection import get_session
 from app.documents.chunking import TextSplitterService
+from app.documents.indexing import index_document
 from app.documents.models import Document, DocumentChunk, DocumentIndexMode, DocumentStatus
 from app.documents.processors.registry import DocumentProcessorRegistry, index_mode_for_mimetype
 from app.documents.schemas import DocumentListSchema, DocumentSchema, FolderTreeNode
@@ -54,6 +55,9 @@ async def _ingest(document: Document, file_path: str, session: AsyncSession) -> 
                 token_count=_estimate_tokens(chunk),
             )
         )
+    # Push the chunk vectors into the search index (guarded — no-op without
+    # embeddings/Qdrant configured).
+    await index_document(document.id, texts)
     document.status = DocumentStatus.indexed
 
 

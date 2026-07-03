@@ -15,6 +15,7 @@ from app.database.base import Base
 import app.auth.models  # noqa: F401
 import app.documents.models  # noqa: F401
 import app.rag_sources.models  # noqa: F401
+import app.chat.models  # noqa: F401
 
 # Load .env file so DATABASE_URL is available without setting system env vars
 load_dotenv(Path(__file__).resolve().parents[3] / ".env")
