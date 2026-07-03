@@ -1,27 +1,26 @@
+import { Database } from 'lucide-react';
 import type { RagSourceDemo } from '../demo-data';
 
-// Read-only card for a single knowledge source. Optional document tally is
-// rendered defensively and omitted when absent. No action controls.
+// Read-only knowledge-source row, styled like the desktop RAG source card.
+// No create/validate/delete controls.
 export function RagSourceCard({ item }: { item: RagSourceDemo }) {
+  const ready = item.status === 'Ready';
   return (
     <li className="card" data-card="rag-source">
-      <div className="card__top">
-        <span className="card__name">{item.name}</span>
-        <span className={`badge badge--${item.status.toLowerCase()}`}>{item.status}</span>
+      <span className="card__icon">
+        <Database size={18} strokeWidth={1.5} />
+      </span>
+      <div className="card__content">
+        <p className="card__name">{item.name}</p>
+        <p className="card__desc">{item.description}</p>
       </div>
-      <p className="card__detail">{item.description}</p>
-      <dl className="meta">
-        <div className="meta__row">
-          <dt>Type</dt>
-          <dd>{item.type}</dd>
-        </div>
+      <div className="card__meta">
+        <span className="card__metric">{item.type}</span>
         {typeof item.documentCount === 'number' && (
-          <div className="meta__row">
-            <dt>Documents</dt>
-            <dd>{item.documentCount}</dd>
-          </div>
+          <span className="card__metric">{item.documentCount} docs</span>
         )}
-      </dl>
+        <span className={`badge ${ready ? 'badge--on' : 'badge--off'}`}>{item.status}</span>
+      </div>
     </li>
   );
 }

@@ -1,33 +1,31 @@
+import { Check, Plug } from 'lucide-react';
 import type { IntegrationDemo } from '../demo-data';
 
-// Read-only card for a single integration. Optional fields are rendered
-// defensively and omitted entirely when absent. No action controls.
+// Read-only integration row, styled like the desktop IntegrationCard:
+// Mono icon chip, name + description, and a non-secret status indicator.
+// No connect/edit/execute controls.
 export function IntegrationCard({ item }: { item: IntegrationDemo }) {
+  const connected = item.status === 'Connected';
   return (
     <li className="card" data-card="integration">
-      <div className="card__top">
-        <span className="card__name">{item.name}</span>
-        <span className={`badge badge--${item.status.toLowerCase()}`}>{item.status}</span>
+      <span className="card__icon">
+        <Plug size={18} strokeWidth={1.5} />
+      </span>
+      <div className="card__content">
+        <p className="card__name">{item.name}</p>
+        <p className="card__desc">{item.description}</p>
       </div>
-      <p className="card__detail">{item.description}</p>
-      <dl className="meta">
-        <div className="meta__row">
-          <dt>Category</dt>
-          <dd>{item.category}</dd>
-        </div>
-        {typeof item.toolCount === 'number' && (
-          <div className="meta__row">
-            <dt>Tools</dt>
-            <dd>{item.toolCount}</dd>
-          </div>
+      <div className="card__meta">
+        {typeof item.toolCount === 'number' && <span className="card__metric">{item.toolCount} tools</span>}
+        {item.lastActivity && <span className="card__metric">{item.lastActivity}</span>}
+        {connected ? (
+          <span className="connected-check" title="Connected" aria-label="Connected">
+            <Check size={16} strokeWidth={2} />
+          </span>
+        ) : (
+          <span className="badge badge--off">{item.status}</span>
         )}
-        {item.lastActivity && (
-          <div className="meta__row">
-            <dt>Last activity</dt>
-            <dd>{item.lastActivity}</dd>
-          </div>
-        )}
-      </dl>
+      </div>
     </li>
   );
 }
