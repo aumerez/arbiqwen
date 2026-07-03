@@ -1,17 +1,31 @@
 // Browser-local implementation of the narrow preview API.
 //
-// Supported startup methods return fixed, side-effect-free values so future
-// browser UI can boot without a backend, tokens, native runtime, or Electron.
-// Everything that would mutate, authenticate externally, execute, stream, or
-// reach native behavior is fail-closed via `unsupported(...)`.
+// Supported startup methods return fixed, side-effect-free values so the UI can
+// boot without a backend, tokens, native runtime, or Electron. Everything that
+// would mutate, authenticate externally, execute, stream, or reach native
+// behavior is fail-closed via `unsupported(...)`.
 //
-// This module performs no network requests, reads/writes no persistent
+// Approved view-only read methods delegate to an injected read adapter when one
+// is supplied; with no adapter they return the same token-free placeholders.
+// This module itself performs no network requests, reads/writes no persistent
 // storage, and contains no credentials.
 
 import type { BrowserElectronApi } from './types';
+import type { ReadAdapter } from './http/readAdapter';
 import { noopSubscribe, unsupported } from './unsupported';
 
-export function createBrowserElectronApi(): BrowserElectronApi {
+export interface CreateBrowserElectronApiOptions {
+  /**
+   * Optional read adapter. When provided, the approved view-only read methods
+   * delegate to it (live fetch). When omitted, those methods return the same
+   * deterministic, token-free placeholders used for safe startup.
+   */
+  readAdapter?: ReadAdapter;
+}
+
+export function createBrowserElectronApi(options: CreateBrowserElectronApiOptions = {}): BrowserElectronApi {
+  const adapter = options.readAdapter;
+
   return {
     app: {
       // Deterministic default so the language bootstrap resolves immediately.
@@ -80,16 +94,21 @@ export function createBrowserElectronApi(): BrowserElectronApi {
       list: () => Promise.resolve([]),
     },
     documents: {
-      list: () => Promise.resolve([]),
+      list: () => (adapter ? adapter.documents.list() : Promise.resolve([])),
     },
     sources: {
       list: () => Promise.resolve([]),
     },
 
     integrations: {
-      list: () => Promise.resolve({ drivers: [], instances: [] }),
-      marketplace: () => Promise.resolve({ tiles: [] }),
-      oauthLinked: () => Promise.resolve({ linked_integrations: [] }),
+      list: () => (adapter ? adapter.integrations.list() : Promise.resolve({ drivers: [], instances: [] })),
+      marketplace: () => (adapter ? adapter.integrations.marketplace() : Promise.resolve({ tiles: [] })),
+      listTools: (id) =>
+        adapter ? adapter.integrations.listTools(id) : Promise.resolve({ integration: null, tools: [] }),
+      schema: (key) => (adapter ? adapter.integrations.schema(key) : Promise.resolve(null)),
+      status: (id) => (adapter ? adapter.integrations.status(id) : Promise.resolve(null)),
+      oauthLinked: () =>
+        adapter ? adapter.integrations.oauthLinked() : Promise.resolve({ linked_integrations: [] }),
       connect: unsupported('integrations.connect'),
       update: unsupported('integrations.update'),
       disconnect: unsupported('integrations.disconnect'),
@@ -102,13 +121,13 @@ export function createBrowserElectronApi(): BrowserElectronApi {
       oauthDisconnect: unsupported('integrations.oauthDisconnect'),
     },
     skills: {
-      list: () => Promise.resolve([]),
+      list: () => (adapter ? adapter.skills.list() : Promise.resolve([])),
       toggle: unsupported('skills.toggle'),
     },
     ragSources: {
-      list: () => Promise.resolve([]),
-      stats: () => Promise.resolve({}),
-      listDrivers: () => Promise.resolve([]),
+      list: () => (adapter ? adapter.ragSources.list() : Promise.resolve([])),
+      stats: () => (adapter ? adapter.ragSources.stats() : Promise.resolve({})),
+      listDrivers: () => (adapter ? adapter.ragSources.listDrivers() : Promise.resolve([])),
       create: unsupported('ragSources.create'),
       update: unsupported('ragSources.update'),
       delete: unsupported('ragSources.delete'),

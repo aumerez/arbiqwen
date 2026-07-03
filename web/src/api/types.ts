@@ -4,6 +4,20 @@
 // only the small subset of fields the preview's startup path needs; they are
 // intentionally not the full desktop contract.
 
+import type {
+  DocumentView,
+  IntegrationDriverView,
+  IntegrationInstanceView,
+  IntegrationSchemaView,
+  IntegrationStatusView,
+  IntegrationToolsView,
+  LinkedIntegrationView,
+  MarketplaceTileView,
+  RagDriverView,
+  RagSourceView,
+  SkillView,
+} from './http/readAdapter';
+
 export type Unsubscribe = () => void;
 
 /** Reported environment for the preview: no remote backend is wired. */
@@ -50,8 +64,8 @@ export interface BrowserNotificationList {
 }
 
 export interface BrowserIntegrationList {
-  drivers: never[];
-  instances: never[];
+  drivers: IntegrationDriverView[];
+  instances: IntegrationInstanceView[];
 }
 
 type FailClosed = (...args: unknown[]) => Promise<never>;
@@ -100,7 +114,7 @@ export interface BrowserElectronApi {
     list: () => Promise<never[]>;
   };
   documents: {
-    list: (projectId?: number, includeAll?: boolean) => Promise<never[]>;
+    list: (projectId?: number, includeAll?: boolean) => Promise<DocumentView[]>;
   };
   sources: {
     list: (projectId?: number) => Promise<never[]>;
@@ -108,8 +122,11 @@ export interface BrowserElectronApi {
 
   integrations: {
     list: () => Promise<BrowserIntegrationList>;
-    marketplace: () => Promise<{ tiles: never[] }>;
-    oauthLinked: () => Promise<{ linked_integrations: never[] }>;
+    marketplace: () => Promise<{ tiles: MarketplaceTileView[] }>;
+    listTools: (id: number | string) => Promise<IntegrationToolsView>;
+    schema: (key: string) => Promise<IntegrationSchemaView | null>;
+    status: (id: number | string) => Promise<IntegrationStatusView | null>;
+    oauthLinked: () => Promise<{ linked_integrations: LinkedIntegrationView[] }>;
     connect: FailClosed;
     update: FailClosed;
     disconnect: FailClosed;
@@ -122,13 +139,13 @@ export interface BrowserElectronApi {
     oauthDisconnect: FailClosed;
   };
   skills: {
-    list: () => Promise<never[]>;
+    list: () => Promise<SkillView[]>;
     toggle: FailClosed;
   };
   ragSources: {
-    list: () => Promise<never[]>;
-    stats: () => Promise<Record<string, never>>;
-    listDrivers: () => Promise<never[]>;
+    list: () => Promise<RagSourceView[]>;
+    stats: () => Promise<Record<string, unknown>>;
+    listDrivers: () => Promise<RagDriverView[]>;
     create: FailClosed;
     update: FailClosed;
     delete: FailClosed;
