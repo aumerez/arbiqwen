@@ -1,0 +1,84 @@
+:root {
+  color-scheme: light dark;
+  font-family:
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    sans-serif;
+}
+
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  color: #e7e7e9;
+}
+
+@media (prefers-color-scheme: light) {
+  .app {
+    color: #1c1c1e;
+  }
+}
+
+.app__header {
+  margin-bottom: 2rem;
+}
+
+.app__title {
+  font-size: 1.75rem;
+  margin: 0;
+}
+
+.app__subtitle {
+  margin: 0.25rem 0 0;
+  opacity: 0.65;
+  font-size: 0.95rem;
+}
+
+.section {
+  margin-bottom: 2.5rem;
+}
+
+.section__title {
+  font-size: 1.25rem;
+  margin: 0 0 0.25rem;
+}
+
+.section__blurb {
+  margin: 0 0 1rem;
+  opacity: 0.7;
+  font-size: 0.9rem;
+}
+
+.section__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(127, 127, 127, 0.25);
+  border-radius: 0.5rem;
+}
+
+.card__name {
+  font-weight: 600;
+}
+
+.card__detail {
+  opacity: 0.7;
+  font-size: 0.9rem;
+}
+
+.app__footer {
+  margin-top: 1rem;
+  opacity: 0.55;
+  font-size: 0.8rem;
+}
