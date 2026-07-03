@@ -1,51 +1,134 @@
-// Static placeholder content for the read-only browser preview.
+// Local, typed demo content for the read-only browser preview.
 //
-// These values are illustrative only. They contain no credentials, no live
-// endpoints, and no per-tenant data. The preview never calls a backend; it
-// renders this fixed content so the three in-scope surfaces can be shown
-// without authentication, network access, or write capability.
+// Everything here is fictional and browser-safe: no real tenant identifiers,
+// no credentials, no tokens, no secrets, no live endpoints, and no dependency
+// on any backend seed. The preview renders this fixed content directly.
 
-export interface PreviewSection {
-  id: 'integrations' | 'skills' | 'rag-sources';
-  title: string;
-  blurb: string;
-  items: PreviewItem[];
-}
-
-export interface PreviewItem {
+/** A read-only integration entry as shown in the preview. */
+export interface IntegrationDemo {
+  id: string;
   name: string;
-  detail: string;
+  description: string;
+  category: string;
+  /** Non-secret connection state for display only. */
+  status: 'Connected' | 'Available';
+  /** Optional count of read-only tools the integration surfaces. */
+  toolCount?: number;
+  /** Optional human-readable last-activity label. */
+  lastActivity?: string;
 }
 
-export const PREVIEW_SECTIONS: PreviewSection[] = [
+/** A read-only skill entry as shown in the preview. */
+export interface SkillDemo {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  status: 'Active' | 'Available';
+}
+
+/** A read-only knowledge-source entry as shown in the preview. */
+export interface RagSourceDemo {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  status: 'Ready' | 'Pending';
+  /** Optional document tally for display only. */
+  documentCount?: number;
+}
+
+export const INTEGRATIONS: IntegrationDemo[] = [
   {
-    id: 'integrations',
-    title: 'Integrations',
-    blurb: 'Catalog of data sources available to a workspace, shown as read-only entries.',
-    items: [
-      { name: 'Project Tracker', detail: 'Work items and status, available to a workspace.' },
-      { name: 'Document Store', detail: 'Shared files and folders.' },
-      { name: 'Calendar', detail: 'Schedules and events.' },
-    ],
+    id: 'project-tracker',
+    name: 'Project Tracker',
+    description: 'Work items, boards, and status rolled up for a workspace.',
+    category: 'Project management',
+    status: 'Connected',
+    toolCount: 6,
+    lastActivity: '2 hours ago',
   },
   {
-    id: 'skills',
-    title: 'Skills',
-    blurb: 'Reusable capabilities a workspace can offer, listed for reference.',
-    items: [
-      { name: 'Summarize', detail: 'Condense long content into key points.' },
-      { name: 'Extract', detail: 'Pull structured fields from text.' },
-      { name: 'Classify', detail: 'Sort items into categories.' },
-    ],
+    id: 'document-store',
+    name: 'Document Store',
+    description: 'Shared files and folders organized by team.',
+    category: 'Storage',
+    status: 'Connected',
+    toolCount: 4,
+    lastActivity: 'Yesterday',
   },
   {
-    id: 'rag-sources',
-    title: 'RAG sources',
-    blurb: 'Knowledge collections that ground answers, listed with high-level stats.',
-    items: [
-      { name: 'Policies', detail: 'Reference documents and guidelines.' },
-      { name: 'Product Docs', detail: 'Specifications and how-to material.' },
-      { name: 'FAQ', detail: 'Common questions and answers.' },
-    ],
+    id: 'calendar',
+    name: 'Calendar',
+    description: 'Schedules, events, and availability across the workspace.',
+    category: 'Productivity',
+    status: 'Connected',
+    toolCount: 3,
+    lastActivity: 'Today',
+  },
+  {
+    id: 'support-desk',
+    name: 'Support Desk',
+    description: 'Customer tickets and conversation history.',
+    category: 'Support',
+    status: 'Available',
+  },
+];
+
+export const SKILLS: SkillDemo[] = [
+  {
+    id: 'summarize',
+    name: 'Summarize',
+    description: 'Condense long content into a short set of key points.',
+    category: 'Text',
+    status: 'Active',
+  },
+  {
+    id: 'extract',
+    name: 'Extract',
+    description: 'Pull structured fields out of unstructured text.',
+    category: 'Text',
+    status: 'Active',
+  },
+  {
+    id: 'classify',
+    name: 'Classify',
+    description: 'Sort items into a set of predefined categories.',
+    category: 'Analysis',
+    status: 'Available',
+  },
+  {
+    id: 'translate',
+    name: 'Translate',
+    description: 'Convert content between supported languages.',
+    category: 'Text',
+    status: 'Available',
+  },
+];
+
+export const RAG_SOURCES: RagSourceDemo[] = [
+  {
+    id: 'policies',
+    name: 'Policies',
+    description: 'Reference documents and internal guidelines.',
+    type: 'Document collection',
+    status: 'Ready',
+    documentCount: 128,
+  },
+  {
+    id: 'product-docs',
+    name: 'Product Docs',
+    description: 'Specifications, how-to guides, and release notes.',
+    type: 'Document collection',
+    status: 'Ready',
+    documentCount: 342,
+  },
+  {
+    id: 'faq',
+    name: 'FAQ',
+    description: 'Common questions paired with vetted answers.',
+    type: 'Knowledge base',
+    status: 'Ready',
+    documentCount: 57,
   },
 ];
