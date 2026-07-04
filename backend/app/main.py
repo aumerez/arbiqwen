@@ -9,6 +9,8 @@ from fastapi import FastAPI
 from app.agents.routes import router as agents_router
 from app.auth.routes import router as auth_router
 from app.chat.routes import router as chat_router
+from app.dashboards.routes import artifacts_router
+from app.dashboards.routes import router as dashboards_router
 from app.documents.routes import router as documents_router
 from app.playbooks.routes import router as playbooks_router
 from app.projects.routes import router as projects_router
@@ -29,8 +31,10 @@ app = FastAPI(title="Arbi Backend", lifespan=lifespan)
 
 register_exception_handlers(app)
 app.include_router(agents_router)
+app.include_router(artifacts_router)
 app.include_router(auth_router)
 app.include_router(chat_router)
+app.include_router(dashboards_router)
 app.include_router(documents_router)
 app.include_router(playbooks_router)
 app.include_router(projects_router)
