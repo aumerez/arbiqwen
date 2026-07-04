@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from app.auth.routes import router as auth_router
 from app.chat.routes import router as chat_router
 from app.documents.routes import router as documents_router
+from app.projects.routes import router as projects_router
 from app.qdrant import init_qdrant
 from app.rag_sources.routes import router as rag_sources_router
 from app.shared.errors import register_exception_handlers
@@ -27,6 +28,7 @@ register_exception_handlers(app)
 app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(documents_router)
+app.include_router(projects_router)
 app.include_router(rag_sources_router)
 
 
