@@ -1,0 +1,38 @@
+# Python
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+*.egg-info
+
+# Local data / uploads
+uploads
+data
+*.sqlite
+*.sqlite3
+*.db
+
+# Env / secrets — never bake into images
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.DS_Store
+.vscode
+.idea
+*.log
+
+# Docs
+*.md
+
+# Git
+.git
+.gitignore
