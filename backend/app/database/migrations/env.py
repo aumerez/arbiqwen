@@ -21,6 +21,8 @@ import app.agents.models  # noqa: F401
 import app.skills.models  # noqa: F401
 import app.playbooks.models  # noqa: F401
 import app.dashboards.models  # noqa: F401
+import app.integrations.models  # noqa: F401
+import app.integrations.oauth_models  # noqa: F401
 
 # Load .env file so DATABASE_URL is available without setting system env vars
 load_dotenv(Path(__file__).resolve().parents[3] / ".env")

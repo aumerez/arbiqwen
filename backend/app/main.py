@@ -12,6 +12,9 @@ from app.chat.routes import router as chat_router
 from app.dashboards.routes import artifacts_router
 from app.dashboards.routes import router as dashboards_router
 from app.documents.routes import router as documents_router
+from app.integrations.oauth_routes import oauth_router as integrations_oauth_router
+from app.integrations.routes import config_router as integrations_config_router
+from app.integrations.routes import router as integrations_router
 from app.playbooks.routes import router as playbooks_router
 from app.projects.routes import router as projects_router
 from app.qdrant import init_qdrant
@@ -36,6 +39,9 @@ app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(dashboards_router)
 app.include_router(documents_router)
+app.include_router(integrations_router)
+app.include_router(integrations_oauth_router)
+app.include_router(integrations_config_router)
 app.include_router(playbooks_router)
 app.include_router(projects_router)
 app.include_router(rag_sources_router)
