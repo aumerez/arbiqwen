@@ -1,8 +1,9 @@
 import { Hexagon } from 'lucide-react';
 
-// Mono-chrome top bar: brand mark, breadcrumb to the active section, and the
-// (inert) tenant identity. View-only — no menus or actions.
-export function TopBar({ section }: { section: string }) {
+// Mono-chrome top bar: brand mark, breadcrumb to the active section, the (inert)
+// tenant identity, and a sign-out control. View-only — the only action is sign
+// out, which clears the in-memory session and performs no backend mutation.
+export function TopBar({ section, onLogout }: { section: string; onLogout?: () => void }) {
   return (
     <header className="topbar">
       <div className="topbar__brand">
@@ -20,6 +21,11 @@ export function TopBar({ section }: { section: string }) {
         <span className="topbar__tenant-logo">HB</span>
         <span className="topbar__tenant-name">Arbi Browser Demo</span>
       </div>
+      {onLogout && (
+        <button type="button" className="topbar__logout" onClick={onLogout}>
+          Sign out
+        </button>
+      )}
     </header>
   );
 }

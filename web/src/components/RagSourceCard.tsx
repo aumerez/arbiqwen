@@ -1,5 +1,5 @@
 import { Database } from 'lucide-react';
-import type { RagSourceDemo } from '../demo-data';
+import type { RagSourceDemo } from '../viewModels';
 
 // Read-only knowledge-source row, styled like the desktop RAG source card.
 // No create/validate/delete controls.
