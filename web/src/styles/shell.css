@@ -99,6 +99,25 @@
   color: #f1f5f9;
 }
 
+.topbar__logout {
+  margin-left: 12px;
+  padding: 4px 10px;
+  border: 1px solid rgba(245, 243, 238, 0.15);
+  background: transparent;
+  color: #cbd5e1;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.topbar__logout:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* ── Sidebar (Mono chrome) ─────────────────────────────────────────── */
 .sidebar {
   width: var(--sidebar-width);

@@ -1,5 +1,5 @@
 import { Zap } from 'lucide-react';
-import type { SkillDemo } from '../demo-data';
+import type { SkillDemo } from '../viewModels';
 
 // Read-only skill row, styled like the desktop SkillCard. No toggle/configure.
 export function SkillCard({ item }: { item: SkillDemo }) {

@@ -1,5 +1,5 @@
 import { Check, Plug } from 'lucide-react';
-import type { IntegrationDemo } from '../demo-data';
+import type { IntegrationDemo } from '../viewModels';
 
 // Read-only integration row, styled like the desktop IntegrationCard:
 // Mono icon chip, name + description, and a non-secret status indicator.
