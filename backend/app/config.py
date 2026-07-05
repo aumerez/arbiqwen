@@ -67,11 +67,28 @@ class Settings(BaseSettings):
     def cors_origins(self) -> list[str]:
         return [o.strip() for o in self.CORS_ALLOWED_ORIGINS.split(",") if o.strip()]
 
-    # LLM provider
-    LLM_PROVIDER: str = Field("anthropic", description="Active LLM provider key")
+    # LLM provider — anthropic for development, alibaba (Qwen) for production.
+    LLM_PROVIDER: str = Field("anthropic", description="Active LLM provider key: anthropic | alibaba")
     ANTHROPIC_API_KEY: str | None = Field(None, description="Anthropic API key (required to make live calls)")
     ANTHROPIC_BASE_URL: str | None = Field(None, description="Override the Anthropic API base URL")
     ANTHROPIC_MODEL: str = Field("claude-sonnet-4-6", description="Default Claude model")
+
+    # Alibaba Cloud Model Studio (DashScope) — OpenAI-compatible endpoint serving Qwen.
+    DASHSCOPE_API_KEY: str | None = Field(None, description="DashScope API key (required for live calls)")
+    DASHSCOPE_BASE_URL: str = Field(
+        "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+        description="DashScope OpenAI-compatible base URL",
+    )
+    DASHSCOPE_MODEL: str = Field("qwen3.7-plus", description="Default Qwen model, e.g. qwen3.7-plus or qwen3.7-max")
+
+    @property
+    def llm_configured(self) -> bool:
+        """Whether the active LLM provider has the credentials it needs."""
+        if self.LLM_PROVIDER == "anthropic":
+            return bool(self.ANTHROPIC_API_KEY)
+        if self.LLM_PROVIDER == "alibaba":
+            return bool(self.DASHSCOPE_API_KEY)
+        return False
 
     # Embeddings
     EMBEDDING_PROVIDER: str = Field("openai", description="Active embedding provider key")

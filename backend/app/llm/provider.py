@@ -1,10 +1,11 @@
-"""LLM provider interface and the Anthropic (Claude) implementation.
+"""LLM provider interface and implementations (Anthropic Claude, Alibaba Qwen).
 
 The chat pipeline talks to models exclusively through `LLMProvider`, so adding
 another vendor is a new subclass plus a `_PROVIDER_CLASSES` entry — no caller
 changes. `create_llm_provider()` resolves the configured provider from settings.
 """
 
+import json
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator
 
@@ -143,8 +144,103 @@ class AnthropicProvider(LLMProvider):
             }
 
 
+class AlibabaProvider(LLMProvider):
+    """Alibaba Cloud Model Studio (DashScope) provider — OpenAI-compatible, serves Qwen."""
+
+    def __init__(self, api_key: str | None = None, base_url: str | None = None, model: str | None = None):
+        self.api_key = api_key or settings.DASHSCOPE_API_KEY
+        self.base_url = base_url or settings.DASHSCOPE_BASE_URL
+        self.model = model or settings.DASHSCOPE_MODEL
+        self._client = None
+
+    @property
+    def client(self):
+        """Build the SDK client lazily so the provider constructs without a key."""
+        if self._client is None:
+            from openai import AsyncOpenAI
+
+            self._client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
+        return self._client
+
+    async def generate(self, prompt: str, temperature: float = 0.3, max_tokens: int = 16384) -> str:
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        usage = getattr(response, "usage", None)
+        self.last_usage = (
+            {"input_tokens": usage.prompt_tokens or 0, "output_tokens": usage.completion_tokens or 0}
+            if usage
+            else None
+        )
+        return response.choices[0].message.content
+
+    async def generate_stream(
+        self,
+        messages: list[dict],
+        tools: list[dict] | None = None,
+        temperature: float = 0.3,
+        max_tokens: int = 16384,
+    ) -> AsyncGenerator[dict, None]:
+        kwargs: dict = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": True,
+            "stream_options": {"include_usage": True},
+        }
+        if tools:
+            kwargs["tools"] = tools
+
+        # Tool-call fragments arrive spread across chunks (by index) and must be
+        # accumulated before they can be emitted.
+        pending_tools: dict[int, dict] = {}
+
+        stream = await self.client.chat.completions.create(**kwargs)
+        async for chunk in stream:
+            # The final usage chunk carries usage with an empty choices list.
+            if getattr(chunk, "usage", None) is not None:
+                yield {
+                    "type": "usage",
+                    "input_tokens": chunk.usage.prompt_tokens,
+                    "output_tokens": chunk.usage.completion_tokens,
+                }
+            if not chunk.choices:
+                continue
+
+            choice = chunk.choices[0]
+            delta = choice.delta
+
+            if getattr(delta, "content", None):
+                yield {"type": "text", "text": delta.content}
+
+            for tc in getattr(delta, "tool_calls", None) or []:
+                slot = pending_tools.setdefault(tc.index, {"id": None, "name": "", "args": ""})
+                if tc.id:
+                    slot["id"] = tc.id
+                if tc.function and tc.function.name:
+                    slot["name"] = tc.function.name
+                if tc.function and tc.function.arguments:
+                    slot["args"] += tc.function.arguments
+
+            if choice.finish_reason:
+                for slot in pending_tools.values():
+                    try:
+                        parsed = json.loads(slot["args"]) if slot["args"] else {}
+                    except json.JSONDecodeError:
+                        parsed = {}
+                    yield {"type": "tool_use", "id": slot["id"], "name": slot["name"], "input": parsed}
+                pending_tools.clear()
+                if choice.finish_reason == "stop":
+                    yield {"type": "end_turn"}
+
+
 _PROVIDER_CLASSES: dict[str, type[LLMProvider]] = {
     "anthropic": AnthropicProvider,
+    "alibaba": AlibabaProvider,
 }
 
 
