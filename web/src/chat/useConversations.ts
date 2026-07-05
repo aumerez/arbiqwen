@@ -1,0 +1,192 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ChatClient, RawMessage } from '../api/http/chatClient';
+import { BrowserReadError } from '../api/http/httpClient';
+import type { ChatCitation, ChatMessageView, ChatSummary, ChatToolCall, StreamChunk } from './types';
+
+// Project-scoped conversation state: the chat list for the active project, the
+// selected conversation's messages, and the streaming send path. Switching the
+// active project reloads the list and clears the open conversation. Read/append
+// only — no project or document mutations.
+
+let idCounter = 0;
+function nextLocalId(): string {
+  idCounter += 1;
+  return `m${idCounter}`;
+}
+
+function toToolCall(chunk: StreamChunk): ChatToolCall {
+  return {
+    toolName: typeof chunk.tool_name === 'string' ? chunk.tool_name : undefined,
+    integrationKey: typeof chunk.integration_key === 'string' ? chunk.integration_key : undefined,
+    skillKey: typeof chunk.skill_key === 'string' ? chunk.skill_key : undefined,
+  };
+}
+
+function mapHistory(rows: RawMessage[]): ChatMessageView[] {
+  return rows.map((row) => ({
+    localId: nextLocalId(),
+    role: row.role === 'assistant' ? 'assistant' : 'user',
+    content: row.content ?? '',
+    citations: Array.isArray(row.citations) ? (row.citations as ChatCitation[]) : undefined,
+    toolCalls: Array.isArray(row.tool_calls) ? (row.tool_calls as ChatToolCall[]) : undefined,
+  }));
+}
+
+export interface UseConversations {
+  chats: ChatSummary[];
+  currentChatId: number | null;
+  messages: ChatMessageView[];
+  sending: boolean;
+  error: string | null;
+  newChat: () => void;
+  selectChat: (id: number) => void;
+  send: (text: string) => void;
+  stop: () => void;
+}
+
+export function useConversations(client: ChatClient, projectId: number | null): UseConversations {
+  const [chats, setChats] = useState<ChatSummary[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<number | null>(null);
+  const [messages, setMessages] = useState<ChatMessageView[]>([]);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const chatIdRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const patch = useCallback((localId: string, fn: (prev: ChatMessageView) => ChatMessageView) => {
+    setMessages((prev) => prev.map((m) => (m.localId === localId ? fn(m) : m)));
+  }, []);
+
+  const loadChats = useCallback(async () => {
+    try {
+      const rows = await client.list(projectId);
+      setChats(rows.map((c) => ({ id: c.id, title: c.title ?? null })));
+    } catch {
+      setChats([]);
+    }
+  }, [client, projectId]);
+
+  // Reset and reload when the active project changes.
+  useEffect(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    chatIdRef.current = null;
+    setCurrentChatId(null);
+    setMessages([]);
+    setError(null);
+    void loadChats();
+  }, [loadChats]);
+
+  const newChat = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    chatIdRef.current = null;
+    setCurrentChatId(null);
+    setMessages([]);
+    setError(null);
+  }, []);
+
+  const selectChat = useCallback(
+    (id: number) => {
+      abortRef.current?.abort();
+      abortRef.current = null;
+      chatIdRef.current = id;
+      setCurrentChatId(id);
+      setError(null);
+      setMessages([]);
+      void (async () => {
+        try {
+          const rows = await client.listMessages(id);
+          if (chatIdRef.current === id) setMessages(mapHistory(rows));
+        } catch {
+          setError('Could not load this conversation.');
+        }
+      })();
+    },
+    [client],
+  );
+
+  const send = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed || sending) return;
+      setError(null);
+      setSending(true);
+
+      const userMsg: ChatMessageView = { localId: nextLocalId(), role: 'user', content: trimmed };
+      const assistantId = nextLocalId();
+      setMessages((prev) => [...prev, userMsg, { localId: assistantId, role: 'assistant', content: '', streaming: true }]);
+
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      const run = async () => {
+        let created = false;
+        if (chatIdRef.current === null) {
+          const chat = await client.create({ projectId });
+          chatIdRef.current = chat.id;
+          setCurrentChatId(chat.id);
+          created = true;
+        }
+        await client.send(chatIdRef.current as number, trimmed, {
+          signal: controller.signal,
+          onChunk: (raw) => {
+            const chunk = raw as StreamChunk;
+            switch (chunk.type) {
+              case 'text':
+                if (typeof chunk.text === 'string') {
+                  patch(assistantId, (m) => ({ ...m, content: m.content + chunk.text }));
+                }
+                break;
+              case 'citations':
+                if (Array.isArray(chunk.citations)) {
+                  patch(assistantId, (m) => ({ ...m, citations: chunk.citations as ChatCitation[] }));
+                }
+                break;
+              case 'tool_call':
+                patch(assistantId, (m) => ({ ...m, toolCalls: [...(m.toolCalls ?? []), toToolCall(chunk)] }));
+                break;
+              case 'error':
+                patch(assistantId, (m) => ({
+                  ...m,
+                  content: 'The assistant could not complete this response.',
+                  error: true,
+                  streaming: false,
+                }));
+                break;
+              default:
+                break;
+            }
+          },
+        });
+        if (created) void loadChats();
+      };
+
+      run()
+        .catch((err) => {
+          const message =
+            err instanceof BrowserReadError && err.kind === 'network'
+              ? 'Could not reach the backend.'
+              : 'Something went wrong sending your message.';
+          setError(message);
+          patch(assistantId, (m) => ({ ...m, content: m.content || message, error: !m.content }));
+        })
+        .finally(() => {
+          patch(assistantId, (m) => ({ ...m, streaming: false }));
+          setSending(false);
+          abortRef.current = null;
+        });
+    },
+    [client, projectId, patch, sending, loadChats],
+  );
+
+  const stop = useCallback(() => {
+    abortRef.current?.abort();
+    const chatId = chatIdRef.current;
+    if (chatId !== null) {
+      void client.cancel(chatId).catch(() => {});
+    }
+  }, [client]);
+
+  return { chats, currentChatId, messages, sending, error, newChat, selectChat, send, stop };
+}

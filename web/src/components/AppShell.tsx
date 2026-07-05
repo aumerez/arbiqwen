@@ -1,25 +1,23 @@
 import type { ReactNode } from 'react';
-import { Sidebar, type NavItem } from './Sidebar';
 import { TopBar } from './TopBar';
 import { StatusBar } from './StatusBar';
 
 interface AppShellProps {
-  items: NavItem[];
-  activeId: string;
+  sidebar: ReactNode;
   sectionLabel: string;
-  onNavigate: (id: string) => void;
   onLogout?: () => void;
   children: ReactNode;
 }
 
-// Recreates the desktop frame: full-width top bar, Mono sidebar + scrolling
-// content in the middle, status bar at the bottom.
-export function AppShell({ items, activeId, sectionLabel, onNavigate, onLogout, children }: AppShellProps) {
+// Desktop frame: full-width top bar, sidebar + scrolling content in the middle,
+// status bar at the bottom. The sidebar is composed by the caller so it can carry
+// project/conversation state.
+export function AppShell({ sidebar, sectionLabel, onLogout, children }: AppShellProps) {
   return (
     <div className="shell">
       <TopBar section={sectionLabel} onLogout={onLogout} />
       <div className="shell__body">
-        <Sidebar items={items} activeId={activeId} onNavigate={onNavigate} />
+        {sidebar}
         <main className="shell__content">{children}</main>
       </div>
       <StatusBar />

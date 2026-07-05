@@ -43,7 +43,7 @@ export interface SendHandlers {
 
 export interface ChatClient {
   create(opts?: { title?: string | null; projectId?: number | null }): Promise<RawChat>;
-  list(): Promise<RawChat[]>;
+  list(projectId?: number | null): Promise<RawChat[]>;
   listMessages(chatId: number): Promise<RawMessage[]>;
   send(chatId: number, message: string, handlers: SendHandlers): Promise<void>;
   cancel(chatId: number): Promise<void>;
@@ -98,8 +98,10 @@ export function createChatClient(config: ChatClientConfig = {}): ChatClient {
       });
     },
 
-    list() {
-      return requestJson<RawChat[]>('GET', '/chats');
+    list(projectId) {
+      const query =
+        projectId === undefined || projectId === null ? '' : `?project_id=${encodeURIComponent(String(projectId))}`;
+      return requestJson<RawChat[]>('GET', `/chats${query}`);
     },
 
     listMessages(chatId) {
