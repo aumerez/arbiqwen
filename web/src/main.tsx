@@ -16,6 +16,7 @@ import '@fontsource/ibm-plex-mono/600.css';
 import './styles/theme.css';
 import './styles/shell.css';
 import './styles/pages.css';
+import './styles/dashboard.css';
 import './styles/chat.css';
 
 // Attach the browser-local preview API before mount. It does not overwrite an

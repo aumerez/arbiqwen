@@ -1,65 +1,58 @@
-import { Database, FolderKanban, MessageSquarePlus, Plug, Zap } from 'lucide-react';
+import { BarChart3, BookOpen, Bot, LayoutDashboard, Sparkles } from 'lucide-react';
+import { Widget } from './widgets/Widget';
+import { ProjectsWidget } from './widgets/ProjectsWidget';
+import { DocumentsWidget, type DocLike } from './widgets/DocumentsWidget';
+import type { ProjectView } from '../projects/useProjects';
 
-// "My Space" home — the default landing after sign-in, mirroring the desktop
-// project dashboard: a hero header plus a grid of summary tiles for the things
-// this demo surfaces (Projects, Integrations, Skills, Knowledge Bases) and a
-// primary action to start a conversation. The chat composer lives in the chat
-// view, not here.
+// My Space home, ported from the desktop ProjectDashboard (default-project
+// layout): a cover + header (avatar, project name, subtitle) over a 2-column
+// widget grid — KPIs (full), Projects + Dashboards, Playbooks + Active Agents,
+// Documents (full). Projects and Documents show live data; the others render
+// their genuine empty states (their data isn't exposed to the browser demo).
+// Read-only: no write controls, no Settings modal, no Quick Actions.
 interface MySpaceViewProps {
-  title: string;
+  projectName: string;
   subtitle: string;
-  counts: {
-    projects: number;
-    integrations: number | null;
-    skills: number | null;
-    rag: number | null;
-  };
-  onStartConversation: () => void;
-  onNavigate: (id: string) => void;
+  projects: ProjectView[];
+  onSelectProject: (id: number) => void;
+  documents: DocLike[];
 }
 
-function fmt(n: number | null): string {
-  return n === null ? '—' : String(n);
-}
-
-export function MySpaceView({ title, subtitle, counts, onStartConversation, onNavigate }: MySpaceViewProps) {
-  const tiles = [
-    { id: 'projects', label: 'Projects', icon: FolderKanban, count: counts.projects },
-    { id: 'integrations', label: 'Integrations', icon: Plug, count: counts.integrations },
-    { id: 'skills', label: 'Skills', icon: Zap, count: counts.skills },
-    { id: 'rag-sources', label: 'Knowledge Bases', icon: Database, count: counts.rag },
-  ];
-
+export function MySpaceView({ projectName, subtitle, projects, onSelectProject, documents }: MySpaceViewProps) {
   return (
-    <section className="home" aria-labelledby="heading-home">
-      <div className="home__hero">
-        <h1 id="heading-home" className="home__title">
-          {title}
-        </h1>
-        <p className="home__subtitle">{subtitle}</p>
+    <div className="dashboard">
+      <div className="dashboard__cover" aria-hidden="true" />
+
+      <div className="dashboard__header">
+        <span className="dashboard__avatar">
+          <Sparkles size={24} strokeWidth={1.5} />
+        </span>
+        <div>
+          <h1 className="dashboard__name">{projectName}</h1>
+          <p className="dashboard__sub">{subtitle}</p>
+        </div>
       </div>
 
-      <button type="button" className="home__cta" onClick={onStartConversation}>
-        <MessageSquarePlus size={18} strokeWidth={1.75} />
-        Start a conversation
-      </button>
-
-      <ul className="home__grid">
-        {tiles.map((tile) => {
-          const Icon = tile.icon;
-          return (
-            <li key={tile.id} className="stat-card">
-              <button type="button" className="stat-card__hit" onClick={() => onNavigate(tile.id)}>
-                <span className="stat-card__icon">
-                  <Icon size={18} strokeWidth={1.5} />
-                </span>
-                <span className="stat-card__count">{fmt(tile.count)}</span>
-                <span className="stat-card__label">{tile.label}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
+      <div className="dashboard__grid">
+        <div className="grid-full">
+          <Widget title="KPIs" icon={BarChart3} count={0} hint="No KPIs yet" />
+        </div>
+        <div className="grid-one">
+          <ProjectsWidget projects={projects} onSelect={onSelectProject} />
+        </div>
+        <div className="grid-one">
+          <Widget title="Dashboards" icon={LayoutDashboard} count={0} hint="No dashboards yet" />
+        </div>
+        <div className="grid-one">
+          <Widget title="Playbooks" icon={BookOpen} count={0} hint="No playbooks yet" />
+        </div>
+        <div className="grid-one">
+          <Widget title="Active Agents" icon={Bot} count={0} hint="No agents yet" />
+        </div>
+        <div className="grid-full">
+          <DocumentsWidget documents={documents} />
+        </div>
+      </div>
+    </div>
   );
 }

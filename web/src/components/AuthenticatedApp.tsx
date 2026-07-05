@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Database, FolderKanban, Plug, Zap } from 'lucide-react';
 import { AppShell } from './AppShell';
 import { Sidebar, type NavItem } from './Sidebar';
@@ -49,14 +49,25 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
 
   const [active, setActive] = useState('home');
 
+  // Documents feed the My Space Documents widget (read-only).
+  const [documents, setDocuments] = useState<{ id?: number | string; filename?: string }[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void adapter.documents
+      .list()
+      .then((docs) => {
+        if (!cancelled) setDocuments(docs as { id?: number | string; filename?: string }[]);
+      })
+      .catch(() => {
+        if (!cancelled) setDocuments([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [adapter]);
+
   // My Space is the home, not a listed project — the grid shows the rest.
   const otherProjects = projects.projects.filter((p) => !p.isDefault);
-  const counts = {
-    projects: otherProjects.length,
-    integrations: state === 'ready' && data ? data.integrations.length : null,
-    skills: state === 'ready' && data ? data.skills.length : null,
-    rag: state === 'ready' && data ? data.ragSources.length : null,
-  };
 
   const sectionLabel =
     active === 'home'
@@ -95,14 +106,14 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
     <AppShell sidebar={sidebar} sectionLabel={sectionLabel} onLogout={onLogout}>
       {active === 'home' && (
         <MySpaceView
-          title={projects.currentProject?.name ?? 'My Space'}
+          projectName={projects.currentProject?.name ?? 'My Space'}
           subtitle="Arbi Browser Demo workspace"
-          counts={counts}
-          onStartConversation={() => {
-            convo.newChat();
+          projects={otherProjects}
+          onSelectProject={(id) => {
+            projects.selectProject(id);
             setActive('chat');
           }}
-          onNavigate={setActive}
+          documents={documents}
         />
       )}
 
