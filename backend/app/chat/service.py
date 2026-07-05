@@ -71,7 +71,7 @@ class ChatService:
         chunks = await retrieve(user_text)
         prompt = _build_prompt(user_text, chunks)
 
-        if settings.ANTHROPIC_API_KEY:
+        if settings.llm_configured:
             try:
                 answer_text = await get_llm_provider().generate(prompt)
             except Exception as exc:  # noqa: BLE001 — surface a message rather than a 500
