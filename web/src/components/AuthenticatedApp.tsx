@@ -1,50 +1,148 @@
-import { useMemo, useState } from 'react';
-import { Database, MessageSquare, Plug, Zap } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Database, FolderKanban, Plug, Zap } from 'lucide-react';
 import { AppShell } from './AppShell';
-import type { NavItem } from './Sidebar';
+import { Sidebar, type NavItem } from './Sidebar';
 import { Section } from './Section';
 import { IntegrationCard } from './IntegrationCard';
 import { SkillCard } from './SkillCard';
 import { RagSourceCard } from './RagSourceCard';
 import { LoadingState, ErrorState } from './DataStates';
 import { ChatView } from './chat/ChatView';
+import { ProjectsView } from './ProjectsView';
+import { MySpaceView } from './MySpaceView';
 import { createReadAdapter } from '../api/http/readAdapter';
+import { createChatClient } from '../api/http/chatClient';
+import { createProjectsClient } from '../api/http/projectsClient';
 import { getApiBaseUrl } from '../config';
 import { getToken } from '../session';
 import { useSections } from '../useSections';
+import { useProjects } from '../projects/useProjects';
+import { useConversations } from '../chat/useConversations';
 
-// The signed-in surface: desktop-style shell framing exactly three read-only
-// sections backed by live adapter reads. The adapter is built from the
-// configured backend origin and the in-memory token getter, so every request
-// carries the current access token without persisting it. Only safe controls
-// (section nav, sign out, retry) are present — nothing connects, runs, or
-// mutates.
+// Signed-in surface: a desktop-style shell with a project-aware sidebar. The
+// Assistant (chat) is the primary view, scoped to the active project; Projects,
+// Integrations, Skills, and Knowledge Bases are reachable from the bottom nav.
+// Read-only beyond chat: nothing else connects, runs, or mutates.
 const NAV: NavItem[] = [
-  { id: 'chat', label: 'Assistant', icon: MessageSquare },
+  { id: 'projects', label: 'Projects', icon: FolderKanban },
   { id: 'integrations', label: 'Integrations', icon: Plug },
   { id: 'skills', label: 'Skills', icon: Zap },
   { id: 'rag-sources', label: 'Knowledge Bases', icon: Database },
 ];
 
+const SECTION_LABELS: Record<string, string> = {
+  integrations: 'Integrations',
+  skills: 'Skills',
+  'rag-sources': 'RAG Sources',
+  projects: 'Projects',
+};
+
 export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
-  const adapter = useMemo(() => createReadAdapter({ baseUrl: getApiBaseUrl(), getToken }), []);
-  const [active, setActive] = useState('chat');
-  const section = NAV.find((nav) => nav.id === active) ?? NAV[0];
+  const baseUrl = getApiBaseUrl();
+  const adapter = useMemo(() => createReadAdapter({ baseUrl, getToken }), [baseUrl]);
+  const chatClient = useMemo(() => createChatClient({ baseUrl, getToken }), [baseUrl]);
+  const projectsClient = useMemo(() => createProjectsClient({ baseUrl, getToken }), [baseUrl]);
+
+  const projects = useProjects(projectsClient);
+  const convo = useConversations(chatClient, projects.currentProject?.id ?? null);
   const { state, data, error, reload } = useSections(adapter);
 
-  return (
-    <AppShell
+  const [active, setActive] = useState('home');
+
+  // Documents feed the My Space Documents widget (read-only).
+  const [documents, setDocuments] = useState<{ id?: number | string; filename?: string }[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void adapter.documents
+      .list()
+      .then((docs) => {
+        if (!cancelled) setDocuments(docs as { id?: number | string; filename?: string }[]);
+      })
+      .catch(() => {
+        if (!cancelled) setDocuments([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [adapter]);
+
+  // My Space is the home, not a listed project — the grid shows the rest.
+  const otherProjects = projects.projects.filter((p) => !p.isDefault);
+
+  const sectionLabel =
+    active === 'home'
+      ? (projects.currentProject?.name ?? 'My Space')
+      : active === 'chat'
+        ? (projects.currentProject?.name ?? 'Assistant')
+        : SECTION_LABELS[active] ?? '';
+
+  const sidebar = (
+    <Sidebar
+      workspaceName="Arbi Browser Demo"
+      projects={projects.projects}
+      currentProject={projects.currentProject}
+      onGoToMySpace={() => {
+        projects.goToMySpace();
+        setActive('home');
+      }}
+      onOpenProject={() => setActive(projects.currentProject?.isDefault ? 'home' : 'chat')}
+      chats={convo.chats}
+      currentChatId={convo.currentChatId}
+      onSelectChat={(id) => {
+        convo.selectChat(id);
+        setActive('chat');
+      }}
+      onNewChat={() => {
+        convo.newChat();
+        setActive('chat');
+      }}
       items={NAV}
       activeId={active}
-      sectionLabel={section.label}
       onNavigate={setActive}
-      onLogout={onLogout}
-    >
-      {active === 'chat' && <ChatView />}
+    />
+  );
 
-      {active !== 'chat' && state === 'loading' && <LoadingState />}
-      {active !== 'chat' && state === 'error' && <ErrorState error={error} onRetry={reload} />}
-      {active !== 'chat' && state === 'ready' && data && (
+  return (
+    <AppShell sidebar={sidebar} sectionLabel={sectionLabel} onLogout={onLogout}>
+      {active === 'home' && (
+        <MySpaceView
+          projectName={projects.currentProject?.name ?? 'My Space'}
+          subtitle="Arbi Browser Demo workspace"
+          projects={otherProjects}
+          onSelectProject={(id) => {
+            projects.selectProject(id);
+            setActive('chat');
+          }}
+          documents={documents}
+        />
+      )}
+
+      {active === 'chat' && (
+        <ChatView
+          messages={convo.messages}
+          sending={convo.sending}
+          error={convo.error}
+          onSend={convo.send}
+          onStop={convo.stop}
+        />
+      )}
+
+      {active === 'projects' && (
+        <ProjectsView
+          projects={otherProjects}
+          currentId={projects.currentProject?.id ?? null}
+          onSelect={(id) => {
+            projects.selectProject(id);
+            setActive('chat');
+          }}
+        />
+      )}
+
+      {active !== 'home' && active !== 'chat' && active !== 'projects' && state === 'loading' && <LoadingState />}
+      {active !== 'home' && active !== 'chat' && active !== 'projects' && state === 'error' && (
+        <ErrorState error={error} onRetry={reload} />
+      )}
+      {active !== 'home' && active !== 'chat' && active !== 'projects' && state === 'ready' && data && (
         <>
           {active === 'integrations' && (
             <Section
