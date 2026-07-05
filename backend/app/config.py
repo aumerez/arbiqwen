@@ -53,6 +53,20 @@ class Settings(BaseSettings):
     JWT_EXPIRES_IN: str = Field("15m", description="Access token lifetime (e.g. 15m, 2h, 1d)")
     REFRESH_TOKEN_EXPIRES_IN: str = Field("7d", description="Refresh token lifetime")
 
+    # CORS — comma-separated exact origins allowed to call the API cross-origin
+    # (e.g. "http://localhost:5173,https://app.arbi.dev"). Empty (default) means
+    # no CORS middleware is installed — same-origin/desktop usage is unaffected.
+    # The web client authenticates with a Bearer header (no cookies), so
+    # credentials stay off.
+    CORS_ALLOWED_ORIGINS: str = Field(
+        "",
+        description="Comma-separated exact origins allowed to call the API cross-origin (empty = CORS disabled)",
+    )
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [o.strip() for o in self.CORS_ALLOWED_ORIGINS.split(",") if o.strip()]
+
     # LLM provider
     LLM_PROVIDER: str = Field("anthropic", description="Active LLM provider key")
     ANTHROPIC_API_KEY: str | None = Field(None, description="Anthropic API key (required to make live calls)")
