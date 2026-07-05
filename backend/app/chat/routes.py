@@ -104,7 +104,7 @@ async def generate_title(
     svc = ChatService(session)
     await _load_owned_chat(chat_id, current["id"], svc)
     title = body.message.strip()[:60] or "New chat"
-    if settings.ANTHROPIC_API_KEY:
+    if settings.llm_configured:
         try:
             generated = await get_llm_provider().generate(
                 f"Give a concise 3-6 word title (no quotes) for this message: {body.message}"
@@ -138,7 +138,7 @@ async def stream_message(
 
     async def event_generator():
         parts: list[str] = []
-        if settings.ANTHROPIC_API_KEY:
+        if settings.llm_configured:
             messages = [
                 {"role": "system", "content": system_content},
                 {"role": "user", "content": body.message},
