@@ -30,5 +30,16 @@ dependencies = [
   "python-multipart>=0.0.6",
 ]
 
+[dependency-groups]
+test = [
+  "pytest>=8.0",
+  "pytest-asyncio>=0.23",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
 [tool.uv]
 package = false
