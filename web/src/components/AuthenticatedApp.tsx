@@ -9,6 +9,7 @@ import { RagSourceCard } from './RagSourceCard';
 import { LoadingState, ErrorState } from './DataStates';
 import { ChatView } from './chat/ChatView';
 import { ProjectsView } from './ProjectsView';
+import { MySpaceView } from './MySpaceView';
 import { createReadAdapter } from '../api/http/readAdapter';
 import { createChatClient } from '../api/http/chatClient';
 import { createProjectsClient } from '../api/http/projectsClient';
@@ -46,17 +47,34 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
   const convo = useConversations(chatClient, projects.currentProject?.id ?? null);
   const { state, data, error, reload } = useSections(adapter);
 
-  const [active, setActive] = useState('chat');
+  const [active, setActive] = useState('home');
 
-  const sectionLabel = active === 'chat' ? (projects.currentProject?.name ?? 'Assistant') : SECTION_LABELS[active] ?? '';
+  // My Space is the home, not a listed project — the grid shows the rest.
+  const otherProjects = projects.projects.filter((p) => !p.isDefault);
+  const counts = {
+    projects: otherProjects.length,
+    integrations: state === 'ready' && data ? data.integrations.length : null,
+    skills: state === 'ready' && data ? data.skills.length : null,
+    rag: state === 'ready' && data ? data.ragSources.length : null,
+  };
+
+  const sectionLabel =
+    active === 'home'
+      ? (projects.currentProject?.name ?? 'My Space')
+      : active === 'chat'
+        ? (projects.currentProject?.name ?? 'Assistant')
+        : SECTION_LABELS[active] ?? '';
 
   const sidebar = (
     <Sidebar
       workspaceName="Arbi Browser Demo"
       projects={projects.projects}
       currentProject={projects.currentProject}
-      onGoToMySpace={projects.goToMySpace}
-      onOpenProject={() => setActive('chat')}
+      onGoToMySpace={() => {
+        projects.goToMySpace();
+        setActive('home');
+      }}
+      onOpenProject={() => setActive(projects.currentProject?.isDefault ? 'home' : 'chat')}
       chats={convo.chats}
       currentChatId={convo.currentChatId}
       onSelectChat={(id) => {
@@ -75,6 +93,19 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
 
   return (
     <AppShell sidebar={sidebar} sectionLabel={sectionLabel} onLogout={onLogout}>
+      {active === 'home' && (
+        <MySpaceView
+          title={projects.currentProject?.name ?? 'My Space'}
+          subtitle="Arbi Browser Demo workspace"
+          counts={counts}
+          onStartConversation={() => {
+            convo.newChat();
+            setActive('chat');
+          }}
+          onNavigate={setActive}
+        />
+      )}
+
       {active === 'chat' && (
         <ChatView
           messages={convo.messages}
@@ -87,7 +118,7 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
 
       {active === 'projects' && (
         <ProjectsView
-          projects={projects.projects}
+          projects={otherProjects}
           currentId={projects.currentProject?.id ?? null}
           onSelect={(id) => {
             projects.selectProject(id);
@@ -96,9 +127,11 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
         />
       )}
 
-      {active !== 'chat' && active !== 'projects' && state === 'loading' && <LoadingState />}
-      {active !== 'chat' && active !== 'projects' && state === 'error' && <ErrorState error={error} onRetry={reload} />}
-      {active !== 'chat' && active !== 'projects' && state === 'ready' && data && (
+      {active !== 'home' && active !== 'chat' && active !== 'projects' && state === 'loading' && <LoadingState />}
+      {active !== 'home' && active !== 'chat' && active !== 'projects' && state === 'error' && (
+        <ErrorState error={error} onRetry={reload} />
+      )}
+      {active !== 'home' && active !== 'chat' && active !== 'projects' && state === 'ready' && data && (
         <>
           {active === 'integrations' && (
             <Section
