@@ -5,6 +5,7 @@ setup_logging()
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.agents.routes import router as agents_router
 from app.auth.routes import router as auth_router
@@ -20,6 +21,7 @@ from app.projects.routes import router as projects_router
 from app.qdrant import init_qdrant
 from app.rag_sources.routes import router as rag_sources_router
 from app.skills.routes import router as skills_router
+from app.config import settings
 from app.shared.errors import register_exception_handlers
 
 
@@ -31,6 +33,18 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="Arbi Backend", lifespan=lifespan)
+
+# Install CORS only when origins are configured. The browser web client runs on
+# a separate origin and cannot call the API without this. Bearer-header auth
+# means no cookies, so credentials stay off.
+if settings.cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 register_exception_handlers(app)
 app.include_router(agents_router)
