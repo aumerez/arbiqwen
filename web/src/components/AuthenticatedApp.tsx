@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Database, Plug, Zap } from 'lucide-react';
+import { Database, MessageSquare, Plug, Zap } from 'lucide-react';
 import { AppShell } from './AppShell';
 import type { NavItem } from './Sidebar';
 import { Section } from './Section';
@@ -7,6 +7,7 @@ import { IntegrationCard } from './IntegrationCard';
 import { SkillCard } from './SkillCard';
 import { RagSourceCard } from './RagSourceCard';
 import { LoadingState, ErrorState } from './DataStates';
+import { ChatView } from './chat/ChatView';
 import { createReadAdapter } from '../api/http/readAdapter';
 import { getApiBaseUrl } from '../config';
 import { getToken } from '../session';
@@ -19,6 +20,7 @@ import { useSections } from '../useSections';
 // (section nav, sign out, retry) are present — nothing connects, runs, or
 // mutates.
 const NAV: NavItem[] = [
+  { id: 'chat', label: 'Assistant', icon: MessageSquare },
   { id: 'integrations', label: 'Integrations', icon: Plug },
   { id: 'skills', label: 'Skills', icon: Zap },
   { id: 'rag-sources', label: 'Knowledge Bases', icon: Database },
@@ -26,7 +28,7 @@ const NAV: NavItem[] = [
 
 export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
   const adapter = useMemo(() => createReadAdapter({ baseUrl: getApiBaseUrl(), getToken }), []);
-  const [active, setActive] = useState('integrations');
+  const [active, setActive] = useState('chat');
   const section = NAV.find((nav) => nav.id === active) ?? NAV[0];
   const { state, data, error, reload } = useSections(adapter);
 
@@ -38,9 +40,11 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
       onNavigate={setActive}
       onLogout={onLogout}
     >
-      {state === 'loading' && <LoadingState />}
-      {state === 'error' && <ErrorState error={error} onRetry={reload} />}
-      {state === 'ready' && data && (
+      {active === 'chat' && <ChatView />}
+
+      {active !== 'chat' && state === 'loading' && <LoadingState />}
+      {active !== 'chat' && state === 'error' && <ErrorState error={error} onRetry={reload} />}
+      {active !== 'chat' && state === 'ready' && data && (
         <>
           {active === 'integrations' && (
             <Section
