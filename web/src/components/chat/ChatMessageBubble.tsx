@@ -1,9 +1,12 @@
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { ChatMessageView } from '../../chat/types';
 import { ToolCallBubble } from './ToolCallBubble';
 
-// One message row. User and assistant turns are styled distinctly. Assistant
-// content streams in as plain text (whitespace preserved); tool calls render as
-// desktop-style cards and citation counts as a compact line. No action controls.
+// One message row. User turns render as plain text; assistant turns render as
+// GitHub-flavored markdown (lists, tables, code, links) like the desktop
+// MessageContent. Tool calls render as desktop-style cards; citations as a
+// compact line. No action controls.
 export function ChatMessageBubble({ message }: { message: ChatMessageView }) {
   const isUser = message.role === 'user';
   return (
@@ -17,10 +20,14 @@ export function ChatMessageBubble({ message }: { message: ChatMessageView }) {
           </div>
         )}
 
-        <p className="chat-msg__text">
-          {message.content}
-          {message.streaming && <span className="chat-msg__caret" aria-hidden="true" />}
-        </p>
+        {isUser ? (
+          <p className="chat-msg__text">{message.content}</p>
+        ) : (
+          <div className="chat-msg__text chat-msg__md">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+            {message.streaming && <span className="chat-msg__caret" aria-hidden="true" />}
+          </div>
+        )}
 
         {!isUser && message.citations && message.citations.length > 0 && (
           <p className="chat-msg__cites">
