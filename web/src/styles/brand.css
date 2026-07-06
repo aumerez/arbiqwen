@@ -1,0 +1,43 @@
+/* Arbi brand mark + wordmark — ported from the desktop brand.module.css. */
+
+@keyframes arbiSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.nucleus {
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.nucleus__satellites {
+  transform-origin: 50px 50px;
+  animation: arbiSpin var(--arbi-spin-seconds, 20s) linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nucleus__satellites {
+    animation: none;
+  }
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  font-family: 'Manrope', 'IBM Plex Sans', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.wordmark__mark {
+  display: inline-flex;
+  margin-left: 0.06em;
+  transform: translateY(0.02em);
+}

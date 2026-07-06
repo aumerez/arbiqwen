@@ -1,16 +1,14 @@
-import { Hexagon } from 'lucide-react';
+import { ArbiWordmark } from './brand/ArbiWordmark';
 
-// Mono-chrome top bar: brand mark, breadcrumb to the active section, the (inert)
-// tenant identity, and a sign-out control. View-only — the only action is sign
-// out, which clears the in-memory session and performs no backend mutation.
+// Mono-chrome top bar: brand wordmark, breadcrumb to the active section, the
+// (inert) tenant identity, and a sign-out control. View-only — the only action
+// is sign out, which clears the in-memory session and performs no backend
+// mutation.
 export function TopBar({ section, onLogout }: { section: string; onLogout?: () => void }) {
   return (
     <header className="topbar">
       <div className="topbar__brand">
-        <span className="topbar__mark">
-          <Hexagon size={13} strokeWidth={2} />
-        </span>
-        Arbi
+        <ArbiWordmark size={16} />
       </div>
       <span className="topbar__crumb-sep">/</span>
       <div className="topbar__crumb">
