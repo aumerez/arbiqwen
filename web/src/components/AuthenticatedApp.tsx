@@ -9,7 +9,7 @@ import { RagSourceCard } from './RagSourceCard';
 import { LoadingState, ErrorState } from './DataStates';
 import { ChatView } from './chat/ChatView';
 import { ProjectsView } from './ProjectsView';
-import { MySpaceView } from './MySpaceView';
+import { ProjectDashboard } from './ProjectDashboard';
 import { createReadAdapter } from '../api/http/readAdapter';
 import { createChatClient } from '../api/http/chatClient';
 import { createProjectsClient } from '../api/http/projectsClient';
@@ -85,7 +85,7 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
         projects.goToMySpace();
         setActive('home');
       }}
-      onOpenProject={() => setActive(projects.currentProject?.isDefault ? 'home' : 'chat')}
+      onOpenProject={() => setActive('home')}
       chats={convo.chats}
       currentChatId={convo.currentChatId}
       onSelectChat={(id) => {
@@ -104,16 +104,18 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
 
   return (
     <AppShell sidebar={sidebar} sectionLabel={sectionLabel} onLogout={onLogout}>
-      {active === 'home' && (
-        <MySpaceView
-          projectName={projects.currentProject?.name ?? 'My Space'}
+      {active === 'home' && projects.currentProject && (
+        <ProjectDashboard
+          project={projects.currentProject}
           subtitle="Arbi Browser Demo workspace"
-          projects={otherProjects}
+          otherProjects={otherProjects}
           onSelectProject={(id) => {
             projects.selectProject(id);
-            setActive('chat');
+            setActive('home');
           }}
           documents={documents}
+          adapter={adapter}
+          projectsClient={projectsClient}
         />
       )}
 
@@ -133,7 +135,7 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
           currentId={projects.currentProject?.id ?? null}
           onSelect={(id) => {
             projects.selectProject(id);
-            setActive('chat');
+            setActive('home');
           }}
         />
       )}
