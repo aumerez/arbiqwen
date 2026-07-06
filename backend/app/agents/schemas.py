@@ -42,6 +42,34 @@ class AgentDefinitionUpdate(BaseModel):
     trigger: str | None = None
 
 
+class AgentRunResponse(BaseModel):
+    id: int
+    tenant_id: int
+    user_id: int | None
+    definition_id: int
+    project_id: int | None
+    chat_id: int | None
+    status: str
+    trigger_input: str | None
+    result_md: str | None
+    error: dict | None
+    started_at: datetime | None
+    completed_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AgentRunCreate(BaseModel):
+    """Instantiate a run FROM a definition. Never re-creates the agent."""
+
+    definition_id: int
+    trigger_input: str | None = None
+    project_id: int | None = None
+    chat_id: int | None = None
+
+
 # --- Run-step primitives --------------------------------------------------
 # One `run_step` call = one LLM round. The loop (loop.py) owns iteration; these
 # types are the wire between the loop, the runner, and the LLM provider. The
