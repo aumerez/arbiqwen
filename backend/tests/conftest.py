@@ -29,6 +29,11 @@ from app.auth.password import hash_password
 from app.database.base import Base
 from app.database.connection import get_session
 from app.main import app as fastapi_app
+from app.shared.rate_limit import limiter
+
+# Rate limiting is infrastructure, not per-test behavior — disable it so tests
+# don't flake on shared cross-test request counts.
+limiter.enabled = False
 
 
 @pytest_asyncio.fixture

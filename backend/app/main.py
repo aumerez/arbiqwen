@@ -6,6 +6,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.agents.routes import router as agents_router
 from app.auth.routes import router as auth_router
@@ -22,17 +24,33 @@ from app.projects.routes import router as projects_router
 from app.qdrant import init_qdrant
 from app.rag_sources.routes import router as rag_sources_router
 from app.shared.errors import register_exception_handlers
+from app.shared.rate_limit import limiter
 from app.skills.routes import router as skills_router
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # Refuse to run in production on the insecure default signing key.
+    if settings.is_production and settings.jwt_secret_is_default:
+        raise RuntimeError("JWT_SECRET must be set to a strong value in production (the dev default is not allowed).")
     # Guarded — degrades rather than failing boot if Qdrant is unreachable.
     await init_qdrant()
     yield
 
 
 app = FastAPI(title="Arbi Backend", lifespan=lifespan)
+
+# Rate limiting (slowapi) — protects auth endpoints from brute force.
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
+
+
+@app.exception_handler(RateLimitExceeded)
+async def _rate_limit_handler(_request, exc):
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(status_code=429, content={"error": {"code": "rate_limited", "message": "Too many requests"}})
+
 
 # Install CORS only when origins are configured. The browser web client runs on
 # a separate origin and cannot call the API without this. Bearer-header auth

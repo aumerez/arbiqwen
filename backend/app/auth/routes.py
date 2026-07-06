@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +19,7 @@ from app.auth.password import verify_password
 from app.auth.schemas import LoginSchema, RefreshSchema, TokenSchema, UserResponseSchema
 from app.config import settings
 from app.database.connection import get_session
+from app.shared.rate_limit import limiter
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -48,7 +49,8 @@ async def _store_refresh_token(session: AsyncSession, user_id: int, token: str) 
 
 
 @router.post("/login", response_model=TokenSchema, response_model_exclude_none=True)
-async def login(login_data: LoginSchema, session: AsyncSession = Depends(get_session)):
+@limiter.limit("10/minute")
+async def login(request: Request, login_data: LoginSchema, session: AsyncSession = Depends(get_session)):
     """Authenticate with email/password and return access + refresh tokens."""
     user = (await session.execute(select(User).where(User.email == login_data.email))).scalar_one_or_none()
     if user is None or user.password_hash is None or not verify_password(login_data.password, user.password_hash):
@@ -75,7 +77,8 @@ async def login(login_data: LoginSchema, session: AsyncSession = Depends(get_ses
 
 
 @router.post("/refresh", response_model=TokenSchema, response_model_exclude_none=True)
-async def refresh(refresh_data: RefreshSchema, session: AsyncSession = Depends(get_session)):
+@limiter.limit("30/minute")
+async def refresh(request: Request, refresh_data: RefreshSchema, session: AsyncSession = Depends(get_session)):
     """Exchange a valid refresh token for a new access + refresh token pair."""
     payload = decode_token(refresh_data.refresh_token)
     if payload is None or "sub" not in payload:

@@ -8,6 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
+from app.config import settings
 from app.database.connection import get_session
 from app.documents.chunking import TextSplitterService
 from app.documents.indexing import index_document
@@ -76,6 +77,11 @@ async def upload(
     data = await file.read()
     if not data:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Empty file")
+    if len(data) > settings.max_upload_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File exceeds the {settings.MAX_UPLOAD_SIZE_MB} MB limit",
+        )
 
     document = Document(
         tenant_id=current["tenant_id"],
