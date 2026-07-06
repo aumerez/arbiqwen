@@ -4,7 +4,7 @@ import pytest
 
 from app.agents import runner as runner_mod
 from app.agents._runtime import _dedupe_key, _format_tool_result, dispatch_tool_calls, extract_text
-from app.agents.models import AgentStatus, AgentTask
+from app.agents.models import AgentDefinition, AgentRun, AgentStatus
 from app.agents.runner import ToolNotAllowed, run_step
 from app.agents.schemas import RunStepRequest, RunStepToolCall
 from app.agents.service import transition_status
@@ -46,8 +46,7 @@ async def test_run_step_text_only(monkeypatch):
             {"type": "usage", "input_tokens": 5, "output_tokens": 3},
         ],
     )
-    agent = AgentTask(id=1, allowed_tools=[])
-    resp = await run_step(agent=agent, request=_req())
+    resp = await run_step(allowed_tools=[], request=_req())
 
     assert resp.next_action == "done"
     assert resp.assistant_message.content == "hello world"
@@ -60,8 +59,7 @@ async def test_run_step_text_only(monkeypatch):
 @pytest.mark.asyncio
 async def test_run_step_text_without_end_turn_is_text_action(monkeypatch):
     _use_provider(monkeypatch, [{"type": "text", "text": "partial"}])
-    agent = AgentTask(id=1, allowed_tools=[])
-    resp = await run_step(agent=agent, request=_req())
+    resp = await run_step(allowed_tools=[], request=_req())
     assert resp.next_action == "text"
 
 
@@ -71,8 +69,7 @@ async def test_run_step_allowed_tool_call(monkeypatch):
         monkeypatch,
         [{"type": "tool_use", "id": "t1", "name": "search", "input": {"q": "acme"}}],
     )
-    agent = AgentTask(id=1, allowed_tools=["search"])
-    resp = await run_step(agent=agent, request=_req())
+    resp = await run_step(allowed_tools=["search"], request=_req())
 
     assert resp.next_action == "tool_use"
     assert len(resp.tool_calls) == 1
@@ -88,23 +85,21 @@ async def test_run_step_disallowed_tool_raises(monkeypatch):
         monkeypatch,
         [{"type": "tool_use", "id": "t1", "name": "delete_everything", "input": {}}],
     )
-    agent = AgentTask(id=1, allowed_tools=["search"])
     with pytest.raises(ToolNotAllowed):
-        await run_step(agent=agent, request=_req())
+        await run_step(allowed_tools=["search"], request=_req())
 
 
 @pytest.mark.asyncio
 async def test_run_step_narrowing_cannot_widen(monkeypatch):
-    # Request asks for a tool the agent doesn't have — it's dropped, so the
+    # Request asks for a tool the definition doesn't have — it's dropped, so the
     # model calling it still trips the whitelist.
     _use_provider(
         monkeypatch,
         [{"type": "tool_use", "id": "t1", "name": "extra", "input": {}}],
     )
-    agent = AgentTask(id=1, allowed_tools=["search"])
     req = RunStepRequest(messages=[{"role": "user", "content": "x"}], allowed_tools=["search", "extra"])
     with pytest.raises(ToolNotAllowed):
-        await run_step(agent=agent, request=req)
+        await run_step(allowed_tools=["search"], request=req)
 
 
 # --- _runtime -------------------------------------------------------------
@@ -178,32 +173,38 @@ async def test_dispatch_tool_error_not_cached():
 # --- service --------------------------------------------------------------
 
 
+async def _make_run(db):
+    definition = AgentDefinition(name="t", prompt_template="p", allowed_tools=[], user_id=1, tenant_id=1)
+    db.add(definition)
+    await db.commit()
+    await db.refresh(definition)
+    run = AgentRun(definition_id=definition.id, user_id=1, tenant_id=1, status=AgentStatus.draft.value)
+    db.add(run)
+    await db.commit()
+    await db.refresh(run)
+    return run
+
+
 @pytest.mark.asyncio
 async def test_transition_status_stamps_timestamps(db):
-    agent = AgentTask(title="t", prompt_template="p", allowed_tools=[], user_id=1, tenant_id=1)
-    db.add(agent)
-    await db.commit()
-    await db.refresh(agent)
+    run = await _make_run(db)
 
-    await transition_status(db, agent=agent, new_status=AgentStatus.working)
-    assert agent.status == AgentStatus.working.value
-    assert agent.started_at is not None
-    assert agent.completed_at is None
+    await transition_status(db, run=run, new_status=AgentStatus.working)
+    assert run.status == AgentStatus.working.value
+    assert run.started_at is not None
+    assert run.completed_at is None
 
-    await transition_status(db, agent=agent, new_status=AgentStatus.done, result_md="final answer")
-    assert agent.status == AgentStatus.done.value
-    assert agent.completed_at is not None
-    assert agent.result_md == "final answer"
+    await transition_status(db, run=run, new_status=AgentStatus.done, result_md="final answer")
+    assert run.status == AgentStatus.done.value
+    assert run.completed_at is not None
+    assert run.result_md == "final answer"
 
 
 @pytest.mark.asyncio
 async def test_transition_status_records_error(db):
-    agent = AgentTask(title="t", prompt_template="p", allowed_tools=[], user_id=1, tenant_id=1)
-    db.add(agent)
-    await db.commit()
-    await db.refresh(agent)
+    run = await _make_run(db)
 
-    await transition_status(db, agent=agent, new_status=AgentStatus.failed, error={"reason": "boom"})
-    assert agent.status == AgentStatus.failed.value
-    assert agent.error == {"reason": "boom"}
-    assert agent.completed_at is not None
+    await transition_status(db, run=run, new_status=AgentStatus.failed, error={"reason": "boom"})
+    assert run.status == AgentStatus.failed.value
+    assert run.error == {"reason": "boom"}
+    assert run.completed_at is not None

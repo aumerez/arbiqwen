@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import logging
 
-from app.agents.models import AgentTask
 from app.agents.schemas import (
     RunStepMessage,
     RunStepRequest,
@@ -31,20 +30,20 @@ logger = logging.getLogger(__name__)
 class ToolNotAllowed(Exception):
     """The LLM tried to call a tool outside the agent's whitelist.
 
-    The loop catches this, marks the agent failed, and surfaces a structured
+    The loop catches this, marks the run failed, and surfaces a structured
     error. Separate from generic exceptions so logs can tell a policy
     violation apart from a bug.
     """
 
 
-def _resolve_allowed_tools(agent: AgentTask, requested: list[str] | None) -> list[str]:
-    """Intersect the caller's requested subset with the agent's stored whitelist.
+def _resolve_allowed_tools(allowed_tools: list[str], requested: list[str] | None) -> list[str]:
+    """Intersect the caller's requested subset with the definition's whitelist.
 
-    Server truth is `agent.allowed_tools`. Callers can only narrow it; an
-    attempt to widen silently drops the extras (the common case is a client
-    re-sending the stored whitelist verbatim, which is fine).
+    Server truth is the definition's `allowed_tools`. Callers can only narrow
+    it; an attempt to widen silently drops the extras (the common case is a
+    client re-sending the stored whitelist verbatim, which is fine).
     """
-    stored = set(agent.allowed_tools or [])
+    stored = set(allowed_tools or [])
     if requested is None:
         return list(stored)
     return [name for name in requested if name in stored]
@@ -73,22 +72,24 @@ def _messages_to_dicts(messages: list[RunStepMessage]) -> list[dict]:
 
 async def run_step(
     *,
-    agent: AgentTask,
+    allowed_tools: list[str],
     request: RunStepRequest,
     tool_definitions: list[dict] | None = None,
+    label: str = "agent",
 ) -> RunStepResponse:
-    """Run one LLM round for the given agent.
+    """Run one LLM round.
 
     Args:
-        agent: The AgentTask row. `allowed_tools` is read from here.
+        allowed_tools: The definition's tool whitelist (server truth).
         request: Messages + optional narrowing of allowed_tools.
         tool_definitions: Tool schemas the LLM may see. Filtered by the
-            agent's whitelist before sending. None/empty → text-only round.
+            whitelist before sending. None/empty → text-only round.
+        label: Identifier for logs/errors (e.g. ``run:42``).
 
     Returns:
         RunStepResponse with the assistant message + any tool_calls + usage.
     """
-    allowed_names = _resolve_allowed_tools(agent, request.allowed_tools)
+    allowed_names = _resolve_allowed_tools(allowed_tools, request.allowed_tools)
     filtered_tools = (_filter_tool_definitions(tool_definitions, allowed_names) if tool_definitions else []) or None
 
     provider = get_llm_provider()
@@ -108,7 +109,7 @@ async def run_step(
             # Server-side whitelist enforcement — the model can't bypass the
             # per-agent narrowing even if it hallucinates a tool name.
             if name not in allowed_names:
-                raise ToolNotAllowed(f"Agent {agent.id} tried to call '{name}', not in allowed_tools={allowed_names}")
+                raise ToolNotAllowed(f"{label} tried to call '{name}', not in allowed_tools={allowed_names}")
             arguments = event.get("input") or {}
             if not isinstance(arguments, dict):
                 arguments = {}

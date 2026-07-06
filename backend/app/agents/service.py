@@ -1,9 +1,9 @@
 """Agent run lifecycle helpers.
 
-PR B logs run progress via status transitions on the `agent_tasks` row only —
-a dedicated step-event log (agent_steps) is deferred to PR C where the schema
-is split into definitions + runs. `transition_status` is the single writer of
-run state so timestamps stay consistent across the loop and the trigger route.
+Run progress is logged via status transitions on the `agent_runs` row. A
+dedicated step-event log is deferred. `transition_status` is the single writer
+of run state so timestamps stay consistent across the loop and the trigger
+route.
 """
 
 from __future__ import annotations
@@ -12,18 +12,18 @@ from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agents.models import AgentStatus, AgentTask
+from app.agents.models import AgentRun, AgentStatus
 
 
 async def transition_status(
     session: AsyncSession,
     *,
-    agent: AgentTask,
+    run: AgentRun,
     new_status: AgentStatus,
     error: dict | None = None,
     result_md: str | None = None,
-) -> AgentTask:
-    """Move an agent to `new_status`, stamping timestamps and result/error.
+) -> AgentRun:
+    """Move a run to `new_status`, stamping timestamps and result/error.
 
     - entering `working` sets `started_at` (once);
     - entering `done`/`failed` sets `completed_at`;
@@ -32,17 +32,17 @@ async def transition_status(
     later step raises.
     """
     now = datetime.now(UTC)
-    agent.status = new_status.value
+    run.status = new_status.value
 
-    if new_status is AgentStatus.working and agent.started_at is None:
-        agent.started_at = now
+    if new_status is AgentStatus.working and run.started_at is None:
+        run.started_at = now
     if new_status in (AgentStatus.done, AgentStatus.failed):
-        agent.completed_at = now
+        run.completed_at = now
     if result_md is not None:
-        agent.result_md = result_md
+        run.result_md = result_md
     if error is not None:
-        agent.error = error
+        run.error = error
 
     await session.commit()
-    await session.refresh(agent)
-    return agent
+    await session.refresh(run)
+    return run

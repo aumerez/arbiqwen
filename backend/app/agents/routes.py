@@ -1,108 +1,85 @@
-"""Agent task routes: definition CRUD + run trigger."""
+"""Agent definition CRUD. Runs (instantiate + trigger + history) live below in
+feat/agent-model commit 2."""
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agents.loop import run_agent
-from app.agents.models import AgentStatus, AgentTask
-from app.agents.schemas import AgentTaskCreate, AgentTaskResponse, AgentTaskUpdate
+from app.agents.models import AgentDefinition
+from app.agents.schemas import (
+    AgentDefinitionCreate,
+    AgentDefinitionResponse,
+    AgentDefinitionUpdate,
+)
 from app.auth.dependencies import get_current_user
 from app.database.connection import get_session
 
-# Statuses where a run is already live — re-triggering would race the loop.
-_ACTIVE_STATUSES = {AgentStatus.queued.value, AgentStatus.working.value, AgentStatus.reporting.value}
-
-router = APIRouter(prefix="/api/agents", tags=["agents"])
+router = APIRouter(prefix="/agent", tags=["agents"])
 
 
-async def _load(agent_id: int, user_id: int, session: AsyncSession) -> AgentTask:
-    agent = (await session.execute(select(AgentTask).where(AgentTask.id == agent_id))).scalar_one_or_none()
-    if agent is None or agent.user_id != user_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
-    return agent
+async def _load_definition(definition_id: int, user_id: int, session: AsyncSession) -> AgentDefinition:
+    row = (
+        await session.execute(select(AgentDefinition).where(AgentDefinition.id == definition_id))
+    ).scalar_one_or_none()
+    if row is None or row.user_id != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent definition not found")
+    return row
 
 
-@router.get("", response_model=list[AgentTaskResponse])
-async def list_agents(current=Depends(get_current_user), session: AsyncSession = Depends(get_session)):
-    """List the current user's agent tasks, newest first."""
+@router.get("/definitions", response_model=list[AgentDefinitionResponse])
+async def list_definitions(current=Depends(get_current_user), session: AsyncSession = Depends(get_session)):
+    """List the current user's agent definitions, newest first."""
     rows = await session.execute(
-        select(AgentTask).where(AgentTask.user_id == current["id"]).order_by(AgentTask.created_at.desc())
+        select(AgentDefinition)
+        .where(AgentDefinition.user_id == current["id"])
+        .order_by(AgentDefinition.created_at.desc())
     )
     return list(rows.scalars().all())
 
 
-@router.post("", response_model=AgentTaskResponse, status_code=status.HTTP_201_CREATED)
-async def create_agent(
-    body: AgentTaskCreate,
+@router.post("/definitions", response_model=AgentDefinitionResponse, status_code=status.HTTP_201_CREATED)
+async def create_definition(
+    body: AgentDefinitionCreate,
     current=Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """Create an agent task definition."""
-    agent = AgentTask(
-        tenant_id=current["tenant_id"],
-        user_id=current["id"],
-        **body.model_dump(),
-    )
-    session.add(agent)
+    """Create a reusable agent definition."""
+    definition = AgentDefinition(tenant_id=current["tenant_id"], user_id=current["id"], **body.model_dump())
+    session.add(definition)
     await session.commit()
-    await session.refresh(agent)
-    return agent
+    await session.refresh(definition)
+    return definition
 
 
-@router.get("/{agent_id}", response_model=AgentTaskResponse)
-async def get_agent(agent_id: int, current=Depends(get_current_user), session: AsyncSession = Depends(get_session)):
-    """Fetch a single agent task."""
-    return await _load(agent_id, current["id"], session)
+@router.get("/definitions/{definition_id}", response_model=AgentDefinitionResponse)
+async def get_definition(
+    definition_id: int, current=Depends(get_current_user), session: AsyncSession = Depends(get_session)
+):
+    """Fetch a single agent definition."""
+    return await _load_definition(definition_id, current["id"], session)
 
 
-@router.patch("/{agent_id}", response_model=AgentTaskResponse)
-async def update_agent(
-    agent_id: int,
-    body: AgentTaskUpdate,
+@router.patch("/definitions/{definition_id}", response_model=AgentDefinitionResponse)
+async def update_definition(
+    definition_id: int,
+    body: AgentDefinitionUpdate,
     current=Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """Update an agent task. Unset fields are left unchanged."""
-    agent = await _load(agent_id, current["id"], session)
+    """Update an agent definition. Unset fields are left unchanged."""
+    definition = await _load_definition(definition_id, current["id"], session)
     for field, value in body.model_dump(exclude_unset=True).items():
-        setattr(agent, field, value)
+        setattr(definition, field, value)
     await session.commit()
-    await session.refresh(agent)
-    return agent
+    await session.refresh(definition)
+    return definition
 
 
-@router.delete("/{agent_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_agent(agent_id: int, current=Depends(get_current_user), session: AsyncSession = Depends(get_session)):
-    """Delete an agent task."""
-    agent = await _load(agent_id, current["id"], session)
-    await session.delete(agent)
-    await session.commit()
-
-
-@router.post("/{agent_id}/run", response_model=AgentTaskResponse, status_code=status.HTTP_202_ACCEPTED)
-async def run_agent_task(
-    agent_id: int,
-    background: BackgroundTasks,
-    current=Depends(get_current_user),
-    session: AsyncSession = Depends(get_session),
+@router.delete("/definitions/{definition_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_definition(
+    definition_id: int, current=Depends(get_current_user), session: AsyncSession = Depends(get_session)
 ):
-    """Trigger a background run of the agent's single loop.
-
-    Marks the agent `queued` and schedules `run_agent`, which opens its own
-    session and drives the loop to done/failed. Returns immediately (202) with
-    the queued row; poll GET /{id} for status and result_md.
-    """
-    agent = await _load(agent_id, current["id"], session)
-    if agent.status in _ACTIVE_STATUSES:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Agent is already running")
-
-    agent.status = AgentStatus.queued.value
-    agent.result_md = None
-    agent.error = None
-    agent.completed_at = None
+    """Delete an agent definition (cascades to its runs)."""
+    definition = await _load_definition(definition_id, current["id"], session)
+    await session.delete(definition)
     await session.commit()
-    await session.refresh(agent)
-
-    background.add_task(run_agent, agent_id)
-    return agent

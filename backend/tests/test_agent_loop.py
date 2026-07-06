@@ -1,12 +1,11 @@
-"""Tests for the single-loop runner (loop.run_agent) and the run trigger route."""
+"""Tests for the single-loop runner (loop.run_agent) over runs + definitions."""
 
 import pytest
 
 from app.agents import loop as loop_mod
-from app.agents import routes as routes_mod
 from app.agents import runner as runner_mod
 from app.agents.loop import run_agent
-from app.agents.models import AgentStatus, AgentTask
+from app.agents.models import AgentDefinition, AgentRun, AgentStatus
 
 
 class FakeProvider:
@@ -32,63 +31,91 @@ def wire_loop(monkeypatch, session_factory):
     return set_events
 
 
-async def _make_agent(db, prompt="summarize the pipeline", status=AgentStatus.draft):
-    agent = AgentTask(
-        title="Lead Intake",
+async def _make_run(db, prompt="summarize the pipeline", status=AgentStatus.draft, trigger_input=None):
+    definition = AgentDefinition(
+        name="Lead Intake",
         prompt_template=prompt,
         allowed_tools=[],
         user_id=1,
         tenant_id=1,
-        status=status.value,
     )
-    db.add(agent)
+    db.add(definition)
     await db.commit()
-    await db.refresh(agent)
-    return agent
+    await db.refresh(definition)
+    run = AgentRun(
+        definition_id=definition.id,
+        user_id=1,
+        tenant_id=1,
+        status=status.value,
+        trigger_input=trigger_input,
+    )
+    db.add(run)
+    await db.commit()
+    await db.refresh(run)
+    return run
 
 
 @pytest.mark.asyncio
 async def test_run_agent_text_only_completes(wire_loop, db):
     wire_loop([{"type": "text", "text": "Pipeline looks healthy."}, {"type": "end_turn"}])
-    agent = await _make_agent(db)
+    run = await _make_run(db)
 
-    await run_agent(agent.id)
+    await run_agent(run.id)
 
-    await db.refresh(agent)
-    assert agent.status == AgentStatus.done.value
-    assert agent.result_md == "Pipeline looks healthy."
-    assert agent.started_at is not None
-    assert agent.completed_at is not None
+    await db.refresh(run)
+    assert run.status == AgentStatus.done.value
+    assert run.result_md == "Pipeline looks healthy."
+    assert run.started_at is not None
+    assert run.completed_at is not None
+
+
+@pytest.mark.asyncio
+async def test_run_agent_uses_trigger_input(wire_loop, db, monkeypatch):
+    captured = {}
+
+    class CapturingProvider(FakeProvider):
+        async def generate_stream(self, messages, tools=None):
+            captured["messages"] = messages
+            for event in [{"type": "text", "text": "done"}, {"type": "end_turn"}]:
+                yield event
+
+    monkeypatch.setattr(runner_mod, "get_llm_provider", lambda: CapturingProvider([]))
+    run = await _make_run(db, trigger_input="Jane from Acme wants a demo")
+
+    await run_agent(run.id)
+
+    # The trigger input is surfaced to the model as a user message.
+    contents = [m.get("content", "") for m in captured["messages"]]
+    assert any("Jane from Acme" in c for c in contents if isinstance(c, str))
 
 
 @pytest.mark.asyncio
 async def test_run_agent_no_text_fails(wire_loop, db):
-    # Model ends the turn with no text and no tools — nothing to deliver.
     wire_loop([{"type": "end_turn"}])
-    agent = await _make_agent(db)
+    run = await _make_run(db)
 
-    await run_agent(agent.id)
+    await run_agent(run.id)
 
-    await db.refresh(agent)
-    assert agent.status == AgentStatus.failed.value
-    assert agent.error["reason"] == "max_rounds_exceeded"
+    await db.refresh(run)
+    assert run.status == AgentStatus.failed.value
+    assert run.error["reason"] == "max_rounds_exceeded"
 
 
 @pytest.mark.asyncio
 async def test_run_agent_skips_terminal(wire_loop, db):
     wire_loop([{"type": "text", "text": "unused"}, {"type": "end_turn"}])
-    agent = await _make_agent(db, status=AgentStatus.done)
-    agent.result_md = "already done"
+    run = await _make_run(db, status=AgentStatus.done)
+    run.result_md = "already done"
     await db.commit()
 
-    await run_agent(agent.id)
+    await run_agent(run.id)
 
-    await db.refresh(agent)
-    assert agent.result_md == "already done"  # untouched
+    await db.refresh(run)
+    assert run.result_md == "already done"  # untouched
 
 
 @pytest.mark.asyncio
-async def test_run_agent_provider_error_fails(wire_loop, db):
+async def test_run_agent_provider_error_fails(wire_loop, db, monkeypatch):
     class BoomProvider:
         provider_key = "fake"
         model = "fake-model"
@@ -97,59 +124,11 @@ async def test_run_agent_provider_error_fails(wire_loop, db):
             raise RuntimeError("no api key")
             yield  # pragma: no cover — make it an async generator
 
-    import app.agents.runner as rm
+    monkeypatch.setattr(runner_mod, "get_llm_provider", lambda: BoomProvider())
+    run = await _make_run(db)
 
-    def boom():
-        return BoomProvider()
+    await run_agent(run.id)
 
-    # Override the provider for this test only.
-    orig = rm.get_llm_provider
-    rm.get_llm_provider = boom
-    try:
-        agent = await _make_agent(db)
-        await run_agent(agent.id)
-    finally:
-        rm.get_llm_provider = orig
-
-    await db.refresh(agent)
-    assert agent.status == AgentStatus.failed.value
-    assert agent.error["reason"] == "run_step_error"
-
-
-# --- trigger route --------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_run_route_queues_and_schedules(client, db, auth_headers, monkeypatch):
-    scheduled: list[int] = []
-    # Don't execute the real loop in the route test — just capture the schedule.
-    monkeypatch.setattr(routes_mod, "run_agent", lambda agent_id: scheduled.append(agent_id))
-
-    agent = await _make_agent(db)
-    resp = await client.post(f"/api/agents/{agent.id}/run", headers=auth_headers)
-
-    assert resp.status_code == 202
-    assert resp.json()["status"] == AgentStatus.queued.value
-    assert scheduled == [agent.id]
-
-
-@pytest.mark.asyncio
-async def test_run_route_conflict_when_active(client, db, auth_headers, monkeypatch):
-    monkeypatch.setattr(routes_mod, "run_agent", lambda agent_id: None)
-    agent = await _make_agent(db, status=AgentStatus.working)
-
-    resp = await client.post(f"/api/agents/{agent.id}/run", headers=auth_headers)
-    assert resp.status_code == 409
-
-
-@pytest.mark.asyncio
-async def test_run_route_scopes_to_owner(client, db, auth_headers, monkeypatch):
-    monkeypatch.setattr(routes_mod, "run_agent", lambda agent_id: None)
-    # Agent owned by a different user.
-    agent = AgentTask(title="x", prompt_template="p", allowed_tools=[], user_id=999, tenant_id=1)
-    db.add(agent)
-    await db.commit()
-    await db.refresh(agent)
-
-    resp = await client.post(f"/api/agents/{agent.id}/run", headers=auth_headers)
-    assert resp.status_code == 404
+    await db.refresh(run)
+    assert run.status == AgentStatus.failed.value
+    assert run.error["reason"] == "run_step_error"
