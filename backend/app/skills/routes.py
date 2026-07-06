@@ -15,8 +15,10 @@ router = APIRouter(prefix="/skills", tags=["skills"])
 
 async def _configs(tenant_id: int, session: AsyncSession) -> dict[str, TenantSkillConfig]:
     rows = (
-        await session.execute(select(TenantSkillConfig).where(TenantSkillConfig.tenant_id == tenant_id))
-    ).scalars().all()
+        (await session.execute(select(TenantSkillConfig).where(TenantSkillConfig.tenant_id == tenant_id)))
+        .scalars()
+        .all()
+    )
     return {c.skill_key: c for c in rows}
 
 

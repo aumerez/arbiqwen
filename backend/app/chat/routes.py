@@ -132,9 +132,7 @@ async def stream_message(
     chunks = await retrieve(body.message)
     context = "\n\n".join(f"[{i + 1}] {c.text}" for i, c in enumerate(chunks))
     system_content = f"{SYSTEM_PROMPT}\n\nContext:\n{context}" if chunks else SYSTEM_PROMPT
-    citations = [
-        {"document_id": c.document_id, "chunk_index": c.chunk_index, "text": c.text[:200]} for c in chunks
-    ]
+    citations = [{"document_id": c.document_id, "chunk_index": c.chunk_index, "text": c.text[:200]} for c in chunks]
 
     async def event_generator():
         parts: list[str] = []

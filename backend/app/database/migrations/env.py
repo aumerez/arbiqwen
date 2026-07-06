@@ -9,20 +9,20 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from app.database.base import Base
+import app.agents.models  # noqa: F401
 
 # Import model modules so their tables register on Base.metadata for autogenerate.
 import app.auth.models  # noqa: F401
-import app.documents.models  # noqa: F401
-import app.rag_sources.models  # noqa: F401
 import app.chat.models  # noqa: F401
-import app.projects.models  # noqa: F401
-import app.agents.models  # noqa: F401
-import app.skills.models  # noqa: F401
-import app.playbooks.models  # noqa: F401
 import app.dashboards.models  # noqa: F401
+import app.documents.models  # noqa: F401
 import app.integrations.models  # noqa: F401
 import app.integrations.oauth_models  # noqa: F401
+import app.playbooks.models  # noqa: F401
+import app.projects.models  # noqa: F401
+import app.rag_sources.models  # noqa: F401
+import app.skills.models  # noqa: F401
+from app.database.base import Base
 
 # Load .env file so DATABASE_URL is available without setting system env vars
 load_dotenv(Path(__file__).resolve().parents[3] / ".env")

@@ -39,9 +39,7 @@ class ChatService:
         return chat
 
     async def list_chats(self, user_id: int) -> list[Chat]:
-        rows = await self.session.execute(
-            select(Chat).where(Chat.user_id == user_id).order_by(Chat.updated_at.desc())
-        )
+        rows = await self.session.execute(select(Chat).where(Chat.user_id == user_id).order_by(Chat.updated_at.desc()))
         return list(rows.scalars().all())
 
     async def get_chat(self, chat_id: int) -> Chat | None:
@@ -58,9 +56,7 @@ class ChatService:
         await self.session.commit()
 
     async def add_message(self, chat_id: int, role: ChatRole, content: str, **fields) -> ChatMessage:
-        message = ChatMessage(
-            chat_id=chat_id, msg_uuid=str(uuid4()), role=role, content=content, **fields
-        )
+        message = ChatMessage(chat_id=chat_id, msg_uuid=str(uuid4()), role=role, content=content, **fields)
         self.session.add(message)
         return message
 
@@ -80,9 +76,7 @@ class ChatService:
         else:
             answer_text = "The language model is not configured on this server."
 
-        citations = [
-            {"document_id": c.document_id, "chunk_index": c.chunk_index, "text": c.text[:200]} for c in chunks
-        ]
+        citations = [{"document_id": c.document_id, "chunk_index": c.chunk_index, "text": c.text[:200]} for c in chunks]
         assistant = await self.add_message(
             chat.id,
             ChatRole.assistant,

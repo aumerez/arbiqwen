@@ -63,7 +63,9 @@ async def seed_demo(session: AsyncSession) -> dict:
     )
     session.add(integration)
     await session.flush()
-    session.add(IntegrationConnection(integration_id=integration.id, status="connected", connected_at=datetime.now(UTC)))
+    session.add(
+        IntegrationConnection(integration_id=integration.id, status="connected", connected_at=datetime.now(UTC))
+    )
 
     session.add(
         AgentTask(
@@ -101,9 +103,7 @@ async def seed_demo(session: AsyncSession) -> dict:
     chat = Chat(tenant_id=1, user_id=user.id, title="Getting started")
     session.add(chat)
     await session.flush()
-    session.add(
-        ChatMessage(chat_id=chat.id, msg_uuid=str(uuid4()), role=ChatRole.user, content="What can you do?")
-    )
+    session.add(ChatMessage(chat_id=chat.id, msg_uuid=str(uuid4()), role=ChatRole.user, content="What can you do?"))
     session.add(
         ChatMessage(
             chat_id=chat.id,

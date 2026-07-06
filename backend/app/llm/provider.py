@@ -109,9 +109,7 @@ class AnthropicProvider(LLMProvider):
         # Anthropic caches an exact prefix for ~5 minutes, discounting cached
         # tokens heavily. No behavior change for the caller.
         if system_message:
-            kwargs["system"] = [
-                {"type": "text", "text": system_message, "cache_control": {"type": "ephemeral"}}
-            ]
+            kwargs["system"] = [{"type": "text", "text": system_message, "cache_control": {"type": "ephemeral"}}]
         if tools:
             clean_tools = [{k: v for k, v in t.items() if not k.startswith("_")} for t in tools]
             if clean_tools:
@@ -171,9 +169,7 @@ class AlibabaProvider(LLMProvider):
         )
         usage = getattr(response, "usage", None)
         self.last_usage = (
-            {"input_tokens": usage.prompt_tokens or 0, "output_tokens": usage.completion_tokens or 0}
-            if usage
-            else None
+            {"input_tokens": usage.prompt_tokens or 0, "output_tokens": usage.completion_tokens or 0} if usage else None
         )
         return response.choices[0].message.content
 

@@ -50,9 +50,7 @@ async def stats(current=Depends(get_current_user), session: AsyncSession = Depen
     total_chunks = (await session.execute(select(func.count()).select_from(DocumentChunk))).scalar_one()
     total_size = (await session.execute(select(func.coalesce(func.sum(Document.size), 0)))).scalar_one()
 
-    by_status = dict(
-        (await session.execute(select(Document.status, func.count()).group_by(Document.status))).all()
-    )
+    by_status = dict((await session.execute(select(Document.status, func.count()).group_by(Document.status))).all())
     by_mimetype = dict(
         (await session.execute(select(Document.mimetype, func.count()).group_by(Document.mimetype))).all()
     )

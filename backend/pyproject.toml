@@ -35,11 +35,34 @@ test = [
   "pytest>=8.0",
   "pytest-asyncio>=0.23",
 ]
+dev = [
+  "ruff>=0.6",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = [
+  "E501",   # line length is handled by the formatter
+  "B008",   # FastAPI's Depends()/Query() in argument defaults is idiomatic
+  "B905",   # zip() without strict= is fine here
+  "UP046",  # keep Generic[T] base for the pydantic paginated model
+]
+
+[tool.ruff.lint.per-file-ignores]
+# main.py calls setup_logging() before the rest of the imports on purpose.
+"app/main.py" = ["E402"]
+# Migrations import models for metadata side effects; conftest imports for create_all.
+"app/database/migrations/**" = ["E402", "F401"]
+"tests/conftest.py" = ["E402"]
 
 [tool.uv]
 package = false

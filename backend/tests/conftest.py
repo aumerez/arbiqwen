@@ -12,13 +12,6 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from app.auth.jwt import create_access_token
-from app.auth.models import User
-from app.auth.password import hash_password
-from app.database.base import Base
-from app.database.connection import get_session
-from app.main import app as fastapi_app
-
 # Import every model module so Base.metadata knows all tables for create_all.
 import app.agents.models  # noqa: F401,E402
 import app.chat.models  # noqa: F401,E402
@@ -30,6 +23,12 @@ import app.playbooks.models  # noqa: F401,E402
 import app.projects.models  # noqa: F401,E402
 import app.rag_sources.models  # noqa: F401,E402
 import app.skills.models  # noqa: F401,E402
+from app.auth.jwt import create_access_token
+from app.auth.models import User
+from app.auth.password import hash_password
+from app.database.base import Base
+from app.database.connection import get_session
+from app.main import app as fastapi_app
 
 
 @pytest_asyncio.fixture

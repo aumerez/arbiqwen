@@ -68,7 +68,9 @@ async def create_dashboard(
     return dash
 
 
-@router.post("/from-artifact/{artifact_id}", response_model=DashboardResponseSchema, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/from-artifact/{artifact_id}", response_model=DashboardResponseSchema, status_code=status.HTTP_201_CREATED
+)
 async def create_from_artifact(
     artifact_id: int,
     body: FromArtifactSchema,

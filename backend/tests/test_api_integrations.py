@@ -19,16 +19,22 @@ async def test_connect_list_dup_and_unknown(client, auth_headers):
     listing = await client.get("/api/integrations/", headers=auth_headers)
     assert len(listing.json()["instances"]) == 1
 
-    dup = await client.post("/api/integrations/slack/connect", headers=auth_headers, json={"alias": "Team Slack", "config": {}})
+    dup = await client.post(
+        "/api/integrations/slack/connect", headers=auth_headers, json={"alias": "Team Slack", "config": {}}
+    )
     assert dup.status_code == 409
 
-    unknown = await client.post("/api/integrations/nope/connect", headers=auth_headers, json={"alias": "x", "config": {}})
+    unknown = await client.post(
+        "/api/integrations/nope/connect", headers=auth_headers, json={"alias": "x", "config": {}}
+    )
     assert unknown.status_code == 400
 
 
 async def test_instance_update_and_delete(client, auth_headers):
     inst_id = (
-        await client.post("/api/integrations/webhook/connect", headers=auth_headers, json={"alias": "Hook", "config": {}})
+        await client.post(
+            "/api/integrations/webhook/connect", headers=auth_headers, json={"alias": "Hook", "config": {}}
+        )
     ).json()["id"]
     renamed = await client.put(f"/api/integrations/instances/{inst_id}", headers=auth_headers, json={"alias": "Hook2"})
     assert renamed.json()["instance_alias"] == "Hook2"

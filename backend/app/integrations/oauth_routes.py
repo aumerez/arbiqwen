@@ -23,12 +23,16 @@ def _granted(scopes: str | None) -> list[str]:
 async def linked_integrations(current=Depends(get_current_user), session: AsyncSession = Depends(get_session)):
     """List the OAuth integrations the current user has connected."""
     rows = (
-        await session.execute(
-            select(OAuthToken).where(
-                OAuthToken.tenant_id == current["tenant_id"], OAuthToken.user_id == current["id"]
+        (
+            await session.execute(
+                select(OAuthToken).where(
+                    OAuthToken.tenant_id == current["tenant_id"], OAuthToken.user_id == current["id"]
+                )
             )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return {
         "linked_integrations": [
             {
