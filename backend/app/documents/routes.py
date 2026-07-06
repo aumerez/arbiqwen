@@ -117,8 +117,10 @@ async def list_documents(
     """List documents, most recent first."""
     total = (await session.execute(select(func.count()).select_from(Document))).scalar_one()
     rows = (
-        await session.execute(select(Document).order_by(Document.created_at.desc()).limit(limit).offset(offset))
-    ).scalars().all()
+        (await session.execute(select(Document).order_by(Document.created_at.desc()).limit(limit).offset(offset)))
+        .scalars()
+        .all()
+    )
     return DocumentListSchema(
         total=total,
         page=(offset // limit) + 1,
@@ -132,9 +134,9 @@ async def folders(current=Depends(get_current_user), session: AsyncSession = Dep
     """Return the virtual folder tree materialized from document folder paths."""
     rows = (
         await session.execute(
-            select(Document.folder_path, func.count()).where(Document.folder_path.is_not(None)).group_by(
-                Document.folder_path
-            )
+            select(Document.folder_path, func.count())
+            .where(Document.folder_path.is_not(None))
+            .group_by(Document.folder_path)
         )
     ).all()
     return _build_folder_tree(rows)

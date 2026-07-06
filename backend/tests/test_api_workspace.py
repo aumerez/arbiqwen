@@ -55,7 +55,11 @@ async def test_playbooks_crud_and_run(client, auth_headers):
     created = await client.post(
         "/playbooks",
         headers=auth_headers,
-        json={"project_id": p["id"], "name": "Onboarding", "steps": [{"id": "s1", "order": 1, "type": "action", "name": "n"}]},
+        json={
+            "project_id": p["id"],
+            "name": "Onboarding",
+            "steps": [{"id": "s1", "order": 1, "type": "action", "name": "n"}],
+        },
     )
     assert created.status_code == 201
     pb_id = created.json()["id"]
@@ -76,14 +80,21 @@ async def test_dashboards_and_from_artifact(client, auth_headers, db):
     db.add(chat)
     await db.flush()
     artifact = Artifact(
-        tenant_id=1, chat_id=chat.id, skill_key="chart", filename="c.html",
-        content_type="text/html", title="Sales Chart", storage_path="/tmp/c.html", size_bytes=10,
+        tenant_id=1,
+        chat_id=chat.id,
+        skill_key="chart",
+        filename="c.html",
+        content_type="text/html",
+        title="Sales Chart",
+        storage_path="/tmp/c.html",
+        size_bytes=10,
     )
     db.add(artifact)
     await db.commit()
 
     made = await client.post(
-        "/dashboards", headers=auth_headers,
+        "/dashboards",
+        headers=auth_headers,
         json={"project_id": p["id"], "title": "Overview", "spec": {"type": "chart"}, "skill_name": "chart"},
     )
     assert made.status_code == 201

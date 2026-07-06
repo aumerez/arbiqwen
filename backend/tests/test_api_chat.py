@@ -28,7 +28,9 @@ async def test_stream_fallback_and_persist(client, auth_headers):
 
 async def test_generate_title(client, auth_headers):
     chat = await _new_chat(client, auth_headers)
-    r = await client.post(f"/chats/{chat['id']}/generate-title", headers=auth_headers, json={"message": "reset a report"})
+    r = await client.post(
+        f"/chats/{chat['id']}/generate-title", headers=auth_headers, json={"message": "reset a report"}
+    )
     assert r.status_code == 200
     assert r.json()["title"]
 

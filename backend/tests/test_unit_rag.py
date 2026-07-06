@@ -1,7 +1,5 @@
 """Unit tests for the guarded RAG helpers and embeddings factory."""
 
-import pytest
-
 from app.chat.retrieval import RetrievedChunk, retrieve
 from app.chat.service import SYSTEM_PROMPT, _build_prompt
 from app.embeddings import EmbeddingProvider, get_embedding_provider

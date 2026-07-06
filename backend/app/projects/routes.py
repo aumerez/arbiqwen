@@ -22,9 +22,7 @@ async def _load_owned_project(project_id: int, user_id: int, session: AsyncSessi
 @router.get("", response_model=list[ProjectResponseSchema])
 async def list_projects(current=Depends(get_current_user), session: AsyncSession = Depends(get_session)):
     """List the current user's projects."""
-    rows = await session.execute(
-        select(Project).where(Project.user_id == current["id"]).order_by(Project.created_at)
-    )
+    rows = await session.execute(select(Project).where(Project.user_id == current["id"]).order_by(Project.created_at))
     return list(rows.scalars().all())
 
 

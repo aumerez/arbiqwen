@@ -34,10 +34,14 @@ async def _load_instance(instance_id: int, tenant_id: int, session: AsyncSession
 async def list_integrations(current=Depends(get_current_user), session: AsyncSession = Depends(get_session)):
     """List the workspace's connected integration instances."""
     rows = (
-        await session.execute(
-            select(Integration).where(Integration.tenant_id == current["tenant_id"]).order_by(Integration.id)
+        (
+            await session.execute(
+                select(Integration).where(Integration.tenant_id == current["tenant_id"]).order_by(Integration.id)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return {"drivers": [], "instances": [IntegrationResponse.model_validate(r).model_dump() for r in rows]}
 
 
