@@ -120,10 +120,15 @@ async def list_documents(
     current=Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    """List documents, most recent first."""
-    total = (await session.execute(select(func.count()).select_from(Document))).scalar_one()
+    """List the current user's documents, most recent first."""
+    owned = Document.user_id == current["id"]
+    total = (await session.execute(select(func.count()).select_from(Document).where(owned))).scalar_one()
     rows = (
-        (await session.execute(select(Document).order_by(Document.created_at.desc()).limit(limit).offset(offset)))
+        (
+            await session.execute(
+                select(Document).where(owned).order_by(Document.created_at.desc()).limit(limit).offset(offset)
+            )
+        )
         .scalars()
         .all()
     )
@@ -141,7 +146,7 @@ async def folders(current=Depends(get_current_user), session: AsyncSession = Dep
     rows = (
         await session.execute(
             select(Document.folder_path, func.count())
-            .where(Document.folder_path.is_not(None))
+            .where(Document.folder_path.is_not(None), Document.user_id == current["id"])
             .group_by(Document.folder_path)
         )
     ).all()
@@ -161,7 +166,9 @@ async def get_document(
     session: AsyncSession = Depends(get_session),
 ):
     """Fetch a single document."""
-    doc = (await session.execute(select(Document).where(Document.id == document_id))).scalar_one_or_none()
+    doc = (
+        await session.execute(select(Document).where(Document.id == document_id, Document.user_id == current["id"]))
+    ).scalar_one_or_none()
     if doc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     return doc
@@ -174,7 +181,9 @@ async def delete_document(
     session: AsyncSession = Depends(get_session),
 ):
     """Delete a document and its stored file."""
-    doc = (await session.execute(select(Document).where(Document.id == document_id))).scalar_one_or_none()
+    doc = (
+        await session.execute(select(Document).where(Document.id == document_id, Document.user_id == current["id"]))
+    ).scalar_one_or_none()
     if doc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     await get_storage_provider().delete_file(doc.tenant_id, doc.id, doc.filename)
