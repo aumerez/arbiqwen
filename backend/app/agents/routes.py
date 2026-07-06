@@ -1,13 +1,17 @@
-"""Agent task routes: definition CRUD surfaced on the workspace home."""
+"""Agent task routes: definition CRUD + run trigger."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agents.models import AgentTask
+from app.agents.loop import run_agent
+from app.agents.models import AgentStatus, AgentTask
 from app.agents.schemas import AgentTaskCreate, AgentTaskResponse, AgentTaskUpdate
 from app.auth.dependencies import get_current_user
 from app.database.connection import get_session
+
+# Statuses where a run is already live — re-triggering would race the loop.
+_ACTIVE_STATUSES = {AgentStatus.queued.value, AgentStatus.working.value, AgentStatus.reporting.value}
 
 router = APIRouter(prefix="/api/agents", tags=["agents"])
 
@@ -74,3 +78,31 @@ async def delete_agent(agent_id: int, current=Depends(get_current_user), session
     agent = await _load(agent_id, current["id"], session)
     await session.delete(agent)
     await session.commit()
+
+
+@router.post("/{agent_id}/run", response_model=AgentTaskResponse, status_code=status.HTTP_202_ACCEPTED)
+async def run_agent_task(
+    agent_id: int,
+    background: BackgroundTasks,
+    current=Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """Trigger a background run of the agent's single loop.
+
+    Marks the agent `queued` and schedules `run_agent`, which opens its own
+    session and drives the loop to done/failed. Returns immediately (202) with
+    the queued row; poll GET /{id} for status and result_md.
+    """
+    agent = await _load(agent_id, current["id"], session)
+    if agent.status in _ACTIVE_STATUSES:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Agent is already running")
+
+    agent.status = AgentStatus.queued.value
+    agent.result_md = None
+    agent.error = None
+    agent.completed_at = None
+    await session.commit()
+    await session.refresh(agent)
+
+    background.add_task(run_agent, agent_id)
+    return agent
