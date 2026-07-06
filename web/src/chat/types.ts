@@ -14,11 +14,20 @@ export interface ChatCitation {
   snippet?: string;
 }
 
+export interface ChatToolResult {
+  error?: string;
+  statusCode?: number;
+  recordCount?: number;
+  durationMs?: number;
+}
+
 export interface ChatToolCall {
+  id?: string;
   toolName?: string;
   integrationKey?: string;
   skillKey?: string;
-  status?: string;
+  operationId?: string;
+  result?: ChatToolResult;
 }
 
 export interface ChatMessageView {
@@ -46,9 +55,13 @@ export interface StreamChunk {
   citations?: unknown[];
   error?: string;
   role?: string;
+  tool_use_id?: string;
   tool_name?: string;
   integration_key?: string;
   skill_key?: string;
+  operation_id?: string;
   status_code?: number;
+  duration_ms?: number;
+  record_count?: number;
   [key: string]: unknown;
 }

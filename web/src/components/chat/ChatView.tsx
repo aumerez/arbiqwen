@@ -36,6 +36,14 @@ export function ChatView({ messages, sending, error, onSend, onStop }: ChatViewP
         <div ref={endRef} />
       </div>
 
+      {sending && (
+        <div className="chat__dots" aria-label="Assistant is responding" role="status">
+          <span className="chat__dot" />
+          <span className="chat__dot" />
+          <span className="chat__dot" />
+        </div>
+      )}
+
       {error && (
         <p className="chat__error" role="alert">
           {error}
