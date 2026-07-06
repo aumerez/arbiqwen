@@ -28,6 +28,7 @@ dependencies = [
   "openpyxl>=3.1",
   "aiofiles>=23",
   "python-multipart>=0.0.6",
+  "slowapi>=0.1.9",
 ]
 
 [dependency-groups]
@@ -37,7 +38,13 @@ test = [
 ]
 dev = [
   "ruff>=0.6",
+  "bandit>=1.7",
+  "pip-audit>=2.7",
 ]
+
+[tool.bandit]
+# Migrations and tests are not part of the served attack surface.
+exclude_dirs = ["tests", "app/database/migrations"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

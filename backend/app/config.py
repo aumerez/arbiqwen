@@ -4,6 +4,9 @@ from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# Insecure development default for JWT_SECRET — production refuses to boot on it.
+DEV_JWT_SECRET = "dev-insecure-secret-change-me-32-bytes-min"
+
 # Strips userinfo (the part before `@` in a URL authority) before logging
 # so a credentialed URL doesn't leak the password to log files.
 _URL_USERINFO_RE = re.compile(r"://[^/@\s]+@")
@@ -42,16 +45,35 @@ class Settings(BaseSettings):
         description="Seconds before a pooled connection is recycled — guards against stale conns behind proxies",
     )
 
+    # Runtime environment — "production" tightens a few safety checks (e.g. the
+    # app refuses to boot on the insecure default JWT secret).
+    ENVIRONMENT: str = Field("development", description="development | production")
+
     # JWT — the default is an insecure dev value so the app boots out of the
     # box. Set a strong random 32+ byte JWT_SECRET for any shared or prod
-    # deployment.
+    # deployment. In production the default is rejected at startup.
     JWT_SECRET: str = Field(
-        "dev-insecure-secret-change-me-32-bytes-min",
+        DEV_JWT_SECRET,
         min_length=32,
         description="HS256 signing key. Override with a strong random value in production.",
     )
     JWT_EXPIRES_IN: str = Field("15m", description="Access token lifetime (e.g. 15m, 2h, 1d)")
     REFRESH_TOKEN_EXPIRES_IN: str = Field("7d", description="Refresh token lifetime")
+
+    # Upload limit — reject files larger than this (guards memory/disk).
+    MAX_UPLOAD_SIZE_MB: int = Field(25, description="Maximum accepted upload size, in megabytes")
+
+    @property
+    def max_upload_bytes(self) -> int:
+        return self.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT.lower() == "production"
+
+    @property
+    def jwt_secret_is_default(self) -> bool:
+        return self.JWT_SECRET == DEV_JWT_SECRET
 
     # CORS — comma-separated exact origins allowed to call the API cross-origin
     # (e.g. "http://localhost:5173,https://app.arbi.dev"). Empty (default) means
