@@ -13,6 +13,7 @@ import { ProjectDashboard } from './ProjectDashboard';
 import { createReadAdapter } from '../api/http/readAdapter';
 import { createChatClient } from '../api/http/chatClient';
 import { createProjectsClient } from '../api/http/projectsClient';
+import { createWorkspaceClient } from '../api/http/workspaceClient';
 import { getApiBaseUrl } from '../config';
 import { getToken } from '../session';
 import { useSections } from '../useSections';
@@ -42,6 +43,7 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
   const adapter = useMemo(() => createReadAdapter({ baseUrl, getToken }), [baseUrl]);
   const chatClient = useMemo(() => createChatClient({ baseUrl, getToken }), [baseUrl]);
   const projectsClient = useMemo(() => createProjectsClient({ baseUrl, getToken }), [baseUrl]);
+  const workspaceClient = useMemo(() => createWorkspaceClient({ baseUrl, getToken }), [baseUrl]);
 
   const projects = useProjects(projectsClient);
   const convo = useConversations(chatClient, projects.currentProject?.id ?? null);
@@ -116,6 +118,7 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
           documents={documents}
           adapter={adapter}
           projectsClient={projectsClient}
+          workspaceClient={workspaceClient}
         />
       )}
 

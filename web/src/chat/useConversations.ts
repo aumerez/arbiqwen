@@ -16,9 +16,20 @@ function nextLocalId(): string {
 
 function toToolCall(chunk: StreamChunk): ChatToolCall {
   return {
+    id: typeof chunk.tool_use_id === 'string' ? chunk.tool_use_id : undefined,
     toolName: typeof chunk.tool_name === 'string' ? chunk.tool_name : undefined,
     integrationKey: typeof chunk.integration_key === 'string' ? chunk.integration_key : undefined,
     skillKey: typeof chunk.skill_key === 'string' ? chunk.skill_key : undefined,
+    operationId: typeof chunk.operation_id === 'string' ? chunk.operation_id : undefined,
+  };
+}
+
+function toToolResult(chunk: StreamChunk) {
+  return {
+    error: typeof chunk.error === 'string' ? chunk.error : undefined,
+    statusCode: typeof chunk.status_code === 'number' ? chunk.status_code : undefined,
+    recordCount: typeof chunk.record_count === 'number' ? chunk.record_count : undefined,
+    durationMs: typeof chunk.duration_ms === 'number' ? chunk.duration_ms : undefined,
   };
 }
 
@@ -145,6 +156,14 @@ export function useConversations(client: ChatClient, projectId: number | null): 
                 break;
               case 'tool_call':
                 patch(assistantId, (m) => ({ ...m, toolCalls: [...(m.toolCalls ?? []), toToolCall(chunk)] }));
+                break;
+              case 'tool_result':
+                patch(assistantId, (m) => ({
+                  ...m,
+                  toolCalls: (m.toolCalls ?? []).map((tc) =>
+                    tc.id && tc.id === chunk.tool_use_id ? { ...tc, result: toToolResult(chunk) } : tc,
+                  ),
+                }));
                 break;
               case 'error':
                 patch(assistantId, (m) => ({
