@@ -207,3 +207,122 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.wempty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 0;
+}
+
+/* Information Sources — cards with per-row toggles */
+.infogrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.infocard {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.infocard__title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.infocard__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.infocard__row + .infocard__row {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.infocard__icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.infocard__name {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.infocard__empty {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.infonote {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--warning);
+}
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toggle__input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle__slider {
+  position: absolute;
+  inset: 0;
+  background: var(--border-strong);
+  border-radius: 9px;
+  transition: background 0.2s;
+}
+
+.toggle__slider::before {
+  content: '';
+  position: absolute;
+  height: 14px;
+  width: 14px;
+  left: 2px;
+  bottom: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggle__input:checked + .toggle__slider {
+  background: var(--accent);
+}
+
+.toggle__input:checked + .toggle__slider::before {
+  transform: translateX(14px);
+}
+
+.toggle__input:disabled + .toggle__slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .infogrid {
+    grid-template-columns: 1fr;
+  }
+}
