@@ -62,8 +62,14 @@ async def client(session_factory):
     """An HTTP client whose requests use the test database."""
 
     async def _override_get_session():
+        # Mirror the real get_session: commit after the request unless it errored.
         async with session_factory() as s:
-            yield s
+            try:
+                yield s
+                await s.commit()
+            except Exception:
+                await s.rollback()
+                raise
 
     fastapi_app.dependency_overrides[get_session] = _override_get_session
     transport = ASGITransport(app=fastapi_app)
