@@ -18,19 +18,21 @@ async def test_project_missing_404(client, auth_headers):
     assert (await client.get("/projects/999", headers=auth_headers)).status_code == 404
 
 
-# --- agents ---
-async def test_agents_crud(client, auth_headers):
+# --- agent definitions ---
+async def test_agent_definitions_crud(client, auth_headers):
     r = await client.post(
-        "/api/agents",
+        "/agent/definitions",
         headers=auth_headers,
-        json={"title": "Summarizer", "prompt_template": "Summarize {x}", "steps": ["a"], "allowed_tools": []},
+        json={"name": "Summarizer", "prompt_template": "Summarize {x}", "allowed_tools": []},
     )
     assert r.status_code == 201
-    agent_id = r.json()["id"]
-    assert (await client.get("/api/agents", headers=auth_headers)).json()[0]["title"] == "Summarizer"
-    patched = await client.patch(f"/api/agents/{agent_id}", headers=auth_headers, json={"status": "queued"})
-    assert patched.json()["status"] == "queued"
-    assert (await client.delete(f"/api/agents/{agent_id}", headers=auth_headers)).status_code == 204
+    definition_id = r.json()["id"]
+    assert (await client.get("/agent/definitions", headers=auth_headers)).json()[0]["name"] == "Summarizer"
+    patched = await client.patch(
+        f"/agent/definitions/{definition_id}", headers=auth_headers, json={"trigger": "webhook"}
+    )
+    assert patched.json()["trigger"] == "webhook"
+    assert (await client.delete(f"/agent/definitions/{definition_id}", headers=auth_headers)).status_code == 204
 
 
 # --- skills ---
