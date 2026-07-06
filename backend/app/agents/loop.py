@@ -4,9 +4,12 @@ One LLM loop drives the whole run — no upfront plan, no per-task hand-off. Sam
 shape chat already uses and the reference agent SDKs wrap: the model adapts
 round to round based on what its tool calls return.
 
+A run instantiates from a definition: config (prompt_template, allowed_tools,
+model) is read from the AgentDefinition; all run state lives on the AgentRun.
+
 Flow:
 
-    seed messages = [system, user(prompt_template)]
+    seed messages = [system, user(prompt_template), user(trigger_input)?]
     loop up to MAX_ROUNDS:
         run_step  -> one LLM round
         if next_action in (text, done): return final text
@@ -28,7 +31,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents._runtime import ToolRegistry, dispatch_tool_calls, extract_text
-from app.agents.models import AgentStatus, AgentTask
+from app.agents.models import AgentDefinition, AgentRun, AgentStatus
 from app.agents.runner import ToolNotAllowed, run_step
 from app.agents.schemas import RunStepMessage, RunStepRequest
 from app.agents.service import transition_status
@@ -38,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 
 # Hard round cap for the whole run. Enough for fetch -> reason -> output even on
-# chatty models; an agent that needs more is probably stuck and should fail
+# chatty models; a run that needs more is probably stuck and should fail
 # cleanly rather than burn tokens.
 MAX_ROUNDS = 10
 
@@ -57,42 +60,50 @@ Rules:
 Match the language and format the user asked for in the task prompt."""
 
 
-async def _build_tool_registry(agent: AgentTask) -> tuple[ToolRegistry, list[dict]]:
+async def _build_tool_registry(definition: AgentDefinition) -> tuple[ToolRegistry, list[dict]]:
     """Build the (registry, tool_definitions) pair for this run.
 
     Empty in this PR — the loop runs text-only reasoning. feat/agent-tools
-    returns the agent's allowed Twenty/Plane callables plus their schemas here,
-    with no other change to the loop.
+    returns the definition's allowed Twenty/Plane callables plus their schemas
+    here, with no other change to the loop.
     """
     return {}, []
 
 
-async def run_agent(agent_id: int) -> None:
-    """Drive one agent from working -> done/failed via a single LLM loop.
+async def run_agent(run_id: int) -> None:
+    """Drive one run from working -> done/failed via a single LLM loop.
 
     Opens its own DB session (the triggering request already committed). Errors
     surface as AgentStatus.failed — never raised, since the caller is a
     background task with nothing to catch.
     """
+    label = f"run:{run_id}"
     async with AsyncSessionLocal() as session:
-        agent = await _load(session, agent_id)
-        if agent is None:
-            logger.warning("run_agent: agent=%s vanished before start", agent_id)
+        run = await _load(session, run_id)
+        if run is None:
+            logger.warning("run_agent: %s vanished before start", label)
             return
-        if agent.status in (AgentStatus.done.value, AgentStatus.failed.value):
-            logger.warning("run_agent: agent=%s already terminal (%s) — skipping", agent_id, agent.status)
+        if run.status in (AgentStatus.done.value, AgentStatus.failed.value):
+            logger.warning("run_agent: %s already terminal (%s) — skipping", label, run.status)
+            return
+
+        definition = await session.get(AgentDefinition, run.definition_id)
+        if definition is None:
+            await _fail(session, run, "definition_missing", f"definition {run.definition_id} not found", -1)
             return
 
         try:
-            await transition_status(session, agent=agent, new_status=AgentStatus.working)
+            await transition_status(session, run=run, new_status=AgentStatus.working)
 
-            registry, tool_definitions = await _build_tool_registry(agent)
+            registry, tool_definitions = await _build_tool_registry(definition)
             tool_names = [t["name"] for t in tool_definitions]
 
             messages: list[RunStepMessage] = [
                 RunStepMessage(role="system", content=AGENT_SYSTEM_PROMPT),
-                RunStepMessage(role="user", content=agent.prompt_template),
+                RunStepMessage(role="user", content=definition.prompt_template),
             ]
+            if run.trigger_input:
+                messages.append(RunStepMessage(role="user", content=f"Input:\n{run.trigger_input}"))
 
             seen_tool_calls: dict[str, str] = {}
             final_text: str | None = None
@@ -104,11 +115,11 @@ async def run_agent(agent_id: int) -> None:
             for round_idx in range(MAX_ROUNDS):
                 # Re-fetch each round so an external cancel (status=failed) takes
                 # effect promptly.
-                agent = await _load(session, agent_id)
-                if agent is None:
+                run = await _load(session, run_id)
+                if run is None:
                     return
-                if agent.status == AgentStatus.failed.value:
-                    logger.info("run_agent: agent=%s cancelled mid-loop", agent_id)
+                if run.status == AgentStatus.failed.value:
+                    logger.info("run_agent: %s cancelled mid-loop", label)
                     return
 
                 if force_no_tools:
@@ -130,16 +141,17 @@ async def run_agent(agent_id: int) -> None:
 
                 try:
                     result = await run_step(
-                        agent=agent,
+                        allowed_tools=definition.allowed_tools,
                         request=RunStepRequest(messages=messages, allowed_tools=step_tool_names),
                         tool_definitions=step_tools,
+                        label=label,
                     )
                 except ToolNotAllowed as exc:
-                    await _fail(session, agent, "tool_not_allowed", str(exc), round_idx)
+                    await _fail(session, run, "tool_not_allowed", str(exc), round_idx)
                     return
                 except Exception as exc:  # noqa: BLE001
-                    logger.exception("run_agent: round %d run_step failed agent=%s", round_idx, agent_id)
-                    await _fail(session, agent, "run_step_error", f"{type(exc).__name__}: {exc}", round_idx)
+                    logger.exception("run_agent: round %d run_step failed %s", round_idx, label)
+                    await _fail(session, run, "run_step_error", f"{type(exc).__name__}: {exc}", round_idx)
                     return
 
                 messages.append(result.assistant_message)
@@ -148,7 +160,7 @@ async def run_agent(agent_id: int) -> None:
                     if force_no_tools:
                         # We sent tool_definitions=None but the model still
                         # emitted tool_use. Can't progress — break and salvage.
-                        logger.warning("run_agent: agent=%s emitted tool_use after no-tools forced", agent_id)
+                        logger.warning("run_agent: %s emitted tool_use after no-tools forced", label)
                         break
                     dispatched, all_deduped = await dispatch_tool_calls(
                         registry,
@@ -157,9 +169,7 @@ async def run_agent(agent_id: int) -> None:
                     )
                     messages.append(RunStepMessage(role="user", content=dispatched))
                     if all_deduped:
-                        logger.info(
-                            "run_agent: agent=%s round=%d all-duplicate — no tools next round", agent_id, round_idx
-                        )
+                        logger.info("run_agent: %s round=%d all-duplicate — no tools next round", label, round_idx)
                         force_no_tools = True
                     continue
 
@@ -170,33 +180,33 @@ async def run_agent(agent_id: int) -> None:
             if final_text is None:
                 await _fail(
                     session,
-                    agent,
+                    run,
                     "max_rounds_exceeded",
-                    f"Agent produced no usable final text after {MAX_ROUNDS} rounds.",
+                    f"Run produced no usable final text after {MAX_ROUNDS} rounds.",
                     MAX_ROUNDS,
                 )
                 return
 
-            await transition_status(session, agent=agent, new_status=AgentStatus.reporting)
-            await transition_status(session, agent=agent, new_status=AgentStatus.done, result_md=final_text)
+            await transition_status(session, run=run, new_status=AgentStatus.reporting)
+            await transition_status(session, run=run, new_status=AgentStatus.done, result_md=final_text)
 
         except Exception as exc:  # noqa: BLE001 — background task, we own all errors
-            logger.exception("run_agent: unhandled error agent=%s", agent_id)
-            await _fail(session, agent, "run_agent_error", f"{type(exc).__name__}: {exc}", -1)
+            logger.exception("run_agent: unhandled error %s", label)
+            await _fail(session, run, "run_agent_error", f"{type(exc).__name__}: {exc}", -1)
 
 
 # --- helpers --------------------------------------------------------------
 
 
-async def _load(session: AsyncSession, agent_id: int) -> AgentTask | None:
-    result = await session.execute(select(AgentTask).where(AgentTask.id == agent_id))
+async def _load(session: AsyncSession, run_id: int) -> AgentRun | None:
+    result = await session.execute(select(AgentRun).where(AgentRun.id == run_id))
     return result.scalar_one_or_none()
 
 
-async def _fail(session: AsyncSession, agent: AgentTask, reason: str, detail: str, step: int) -> None:
+async def _fail(session: AsyncSession, run: AgentRun, reason: str, detail: str, step: int) -> None:
     await transition_status(
         session,
-        agent=agent,
+        run=run,
         new_status=AgentStatus.failed,
         error={"reason": reason, "detail": detail, "step": step},
     )

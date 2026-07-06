@@ -10,7 +10,7 @@ from uuid import uuid4
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agents.models import AgentTask
+from app.agents.models import AgentDefinition
 from app.auth.models import User
 from app.auth.password import hash_password
 from app.chat.models import Chat, ChatMessage, ChatRole
@@ -68,14 +68,13 @@ async def seed_demo(session: AsyncSession) -> dict:
     )
 
     session.add(
-        AgentTask(
+        AgentDefinition(
             tenant_id=1,
             user_id=user.id,
-            title="Daily Summary",
+            name="Daily Summary",
             prompt_template="Summarize activity for {date}.",
-            steps=["collect", "summarize"],
             allowed_tools=["document_search"],
-            status="draft",
+            trigger="manual",
         )
     )
 

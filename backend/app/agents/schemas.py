@@ -6,23 +6,53 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
-class AgentTaskResponse(BaseModel):
+class AgentDefinitionResponse(BaseModel):
     id: int
     tenant_id: int
     user_id: int | None
     project_id: int | None
-    chat_id: int | None
-    title: str
+    name: str
     description: str | None
-    task_type: str | None
     prompt_template: str
-    steps: list
     allowed_tools: list
+    model: str | None
+    trigger: str
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AgentDefinitionCreate(BaseModel):
+    name: str
+    description: str | None = None
+    prompt_template: str
+    allowed_tools: list = Field(default_factory=list)
+    model: str | None = None
+    trigger: str = "manual"
+    project_id: int | None = None
+
+
+class AgentDefinitionUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    prompt_template: str | None = None
+    allowed_tools: list | None = None
+    model: str | None = None
+    trigger: str | None = None
+
+
+class AgentRunResponse(BaseModel):
+    id: int
+    tenant_id: int
+    user_id: int | None
+    definition_id: int
+    project_id: int | None
+    chat_id: int | None
     status: str
-    execution_side: str
+    trigger_input: str | None
     result_md: str | None
     error: dict | None
-    spawn_message: str | None
     started_at: datetime | None
     completed_at: datetime | None
     created_at: datetime
@@ -31,25 +61,13 @@ class AgentTaskResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class AgentTaskCreate(BaseModel):
-    title: str
-    description: str | None = None
-    task_type: str | None = None
-    prompt_template: str
-    steps: list = Field(default_factory=list)
-    allowed_tools: list = Field(default_factory=list)
-    execution_side: str = "backend"
+class AgentRunCreate(BaseModel):
+    """Instantiate a run FROM a definition. Never re-creates the agent."""
+
+    definition_id: int
+    trigger_input: str | None = None
     project_id: int | None = None
     chat_id: int | None = None
-
-
-class AgentTaskUpdate(BaseModel):
-    title: str | None = None
-    description: str | None = None
-    prompt_template: str | None = None
-    steps: list | None = None
-    allowed_tools: list | None = None
-    status: str | None = None
 
 
 # --- Run-step primitives --------------------------------------------------
