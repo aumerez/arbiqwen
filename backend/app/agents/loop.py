@@ -31,6 +31,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents._runtime import ToolRegistry, dispatch_tool_calls, extract_text
+from app.agents.memory import recall_memories, save_memory
 from app.agents.models import AgentDefinition, AgentRun, AgentStatus
 from app.agents.runner import ToolNotAllowed, run_step
 from app.agents.schemas import RunStepMessage, RunStepRequest
@@ -104,8 +105,17 @@ async def run_agent(run_id: int) -> None:
                 run.pending_action = None
                 await session.commit()
             else:
+                system_prompt = AGENT_SYSTEM_PROMPT
+                if run.trigger_input:
+                    past = await recall_memories(
+                        query=run.trigger_input,
+                        tenant_id=run.tenant_id,
+                    )
+                    if past:
+                        system_prompt = f"{AGENT_SYSTEM_PROMPT}\n\n{past}"
+
                 messages = [
-                    RunStepMessage(role="system", content=AGENT_SYSTEM_PROMPT),
+                    RunStepMessage(role="system", content=system_prompt),
                     RunStepMessage(role="user", content=definition.prompt_template),
                 ]
                 if run.trigger_input:
@@ -203,6 +213,7 @@ async def run_agent(run_id: int) -> None:
 
             await transition_status(session, run=run, new_status=AgentStatus.reporting)
             await transition_status(session, run=run, new_status=AgentStatus.done, result_md=final_text)
+            await save_memory(session, run=run)
 
         except Exception as exc:  # noqa: BLE001 — background task, we own all errors
             logger.exception("run_agent: unhandled error %s", label)
