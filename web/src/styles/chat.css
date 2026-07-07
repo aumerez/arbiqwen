@@ -106,28 +106,15 @@
   min-width: 0;
 }
 
+/* Flat message body (matches the desktop MessageContent — no colored bubble). */
 .chat-msg__bubble {
-  padding: 10px 14px;
   font-size: 14px;
   line-height: 1.6;
+  color: var(--text-primary);
   word-wrap: break-word;
 }
 
-.chat-msg--assistant .chat-msg__bubble {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: 2px var(--radius-md) var(--radius-md) var(--radius-md);
-}
-
-.chat-msg--user .chat-msg__bubble {
-  background: var(--accent);
-  color: var(--accent-text);
-  border-radius: var(--radius-md) var(--radius-md) 2px var(--radius-md);
-}
-
 .chat-msg--error .chat-msg__bubble {
-  background: var(--error-muted);
-  border-color: var(--error);
   color: var(--error);
 }
 
@@ -449,50 +436,73 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--border-subtle);
+  max-width: 360px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-  text-align: left;
-  cursor: pointer;
-  font-family: var(--font-sans);
-  transition: border-color var(--transition);
-}
-
-.artifact-card:hover {
-  border-color: var(--accent);
 }
 
 .artifact-card__icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-sm);
-  background: var(--chip-bg);
-  color: var(--chip-fg);
+  background: var(--accent-muted);
+  color: var(--accent);
   flex-shrink: 0;
 }
 
-.artifact-card__title {
+.artifact-card__info {
+  display: flex;
+  flex-direction: column;
   flex: 1;
+  min-width: 0;
+}
+
+.artifact-card__title {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.artifact-card__preview {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.artifact-card__filename {
   font-size: 11px;
-  color: var(--accent);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.artifact-card__actions {
+  display: flex;
+  gap: 4px;
   flex-shrink: 0;
+}
+
+.artifact-card__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.artifact-card__action:hover {
+  background: var(--accent-muted);
+  border-color: var(--accent-muted);
+  color: var(--accent);
 }
 
 /* Right-side artifact preview panel */

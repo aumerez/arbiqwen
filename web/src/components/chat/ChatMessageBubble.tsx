@@ -64,15 +64,9 @@ export function ChatMessageBubble({ message, isLastAssistant = false }: ChatMess
         )}
 
         {showBubble && (
-          <div className="chat-msg__bubble">
-            {isUser ? (
-              <p className="chat-msg__text">{message.content}</p>
-            ) : (
-              <div className="chat-msg__text chat-msg__md">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
-                {message.streaming && <span className="chat-msg__caret" aria-hidden="true" />}
-              </div>
-            )}
+          <div className="chat-msg__bubble chat-msg__md">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+            {message.streaming && <span className="chat-msg__caret" aria-hidden="true" />}
           </div>
         )}
 
