@@ -21,6 +21,7 @@ function toToolCall(chunk: StreamChunk): ChatToolCall {
     integrationKey: typeof chunk.integration_key === 'string' ? chunk.integration_key : undefined,
     skillKey: typeof chunk.skill_key === 'string' ? chunk.skill_key : undefined,
     operationId: typeof chunk.operation_id === 'string' ? chunk.operation_id : undefined,
+    input: chunk.input && typeof chunk.input === 'object' ? chunk.input : undefined,
   };
 }
 
@@ -30,6 +31,9 @@ function toToolResult(chunk: StreamChunk) {
     statusCode: typeof chunk.status_code === 'number' ? chunk.status_code : undefined,
     recordCount: typeof chunk.record_count === 'number' ? chunk.record_count : undefined,
     durationMs: typeof chunk.duration_ms === 'number' ? chunk.duration_ms : undefined,
+    sizeChars: typeof chunk.size_chars === 'number' ? chunk.size_chars : undefined,
+    preview: typeof chunk.preview === 'string' ? chunk.preview : undefined,
+    rawPreview: typeof chunk.raw_preview === 'string' ? chunk.raw_preview : undefined,
   };
 }
 
@@ -40,6 +44,7 @@ function mapHistory(rows: RawMessage[]): ChatMessageView[] {
     content: row.content ?? '',
     citations: Array.isArray(row.citations) ? (row.citations as ChatCitation[]) : undefined,
     toolCalls: Array.isArray(row.tool_calls) ? (row.tool_calls as ChatToolCall[]) : undefined,
+    createdAt: row.created_at,
   }));
 }
 
@@ -124,9 +129,14 @@ export function useConversations(client: ChatClient, projectId: number | null): 
       setError(null);
       setSending(true);
 
-      const userMsg: ChatMessageView = { localId: nextLocalId(), role: 'user', content: trimmed };
+      const nowIso = new Date().toISOString();
+      const userMsg: ChatMessageView = { localId: nextLocalId(), role: 'user', content: trimmed, createdAt: nowIso };
       const assistantId = nextLocalId();
-      setMessages((prev) => [...prev, userMsg, { localId: assistantId, role: 'assistant', content: '', streaming: true }]);
+      setMessages((prev) => [
+        ...prev,
+        userMsg,
+        { localId: assistantId, role: 'assistant', content: '', streaming: true, createdAt: nowIso },
+      ]);
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -146,7 +156,29 @@ export function useConversations(client: ChatClient, projectId: number | null): 
             switch (chunk.type) {
               case 'text':
                 if (typeof chunk.text === 'string') {
+                  // Accumulate into the current segment (the live body).
                   patch(assistantId, (m) => ({ ...m, content: m.content + chunk.text }));
+                }
+                break;
+              case 'segment_role':
+                // The backend classifies the round that just ended:
+                // "thinking" → commit the current segment as a thinking block
+                // (rendered before this round's tool cards) and reset it;
+                // "synthesis" → the rest is the answer body.
+                if (chunk.kind === 'thinking') {
+                  patch(assistantId, (m) => {
+                    if (!m.content.trim()) return m;
+                    return {
+                      ...m,
+                      thinkingBlocks: [
+                        ...(m.thinkingBlocks ?? []),
+                        { content: m.content, beforeToolIndex: m.toolCalls?.length ?? 0 },
+                      ],
+                      content: '',
+                    };
+                  });
+                } else if (chunk.kind === 'synthesis') {
+                  patch(assistantId, (m) => ({ ...m, inSynthesis: true }));
                 }
                 break;
               case 'citations':
@@ -163,6 +195,50 @@ export function useConversations(client: ChatClient, projectId: number | null): 
                   toolCalls: (m.toolCalls ?? []).map((tc) =>
                     tc.id && tc.id === chunk.tool_use_id ? { ...tc, result: toToolResult(chunk) } : tc,
                   ),
+                }));
+                break;
+              case 'artifact':
+                if (chunk.id !== undefined) {
+                  patch(assistantId, (m) => ({
+                    ...m,
+                    artifacts: [
+                      ...(m.artifacts ?? []),
+                      {
+                        id: chunk.id as number | string,
+                        filename: typeof chunk.filename === 'string' ? chunk.filename : undefined,
+                        title: typeof chunk.title === 'string' ? chunk.title : undefined,
+                        contentType: typeof chunk.content_type === 'string' ? chunk.content_type : undefined,
+                      },
+                    ],
+                  }));
+                }
+                break;
+              case 'thinking_start':
+                patch(assistantId, (m) => ({
+                  ...m,
+                  thinking: { content: m.thinking?.content ?? '', streaming: true, durationMs: 0 },
+                }));
+                break;
+              case 'thinking_delta':
+                if (typeof chunk.text === 'string') {
+                  patch(assistantId, (m) => ({
+                    ...m,
+                    thinking: {
+                      content: (m.thinking?.content ?? '') + chunk.text,
+                      streaming: true,
+                      durationMs: m.thinking?.durationMs ?? 0,
+                    },
+                  }));
+                }
+                break;
+              case 'thinking_end':
+                patch(assistantId, (m) => ({
+                  ...m,
+                  thinking: {
+                    content: m.thinking?.content ?? '',
+                    streaming: false,
+                    durationMs: typeof chunk.duration_ms === 'number' ? chunk.duration_ms : (m.thinking?.durationMs ?? 0),
+                  },
                 }));
                 break;
               case 'error':

@@ -51,44 +51,172 @@
   gap: 12px;
 }
 
-/* Messages */
+/* Messages — avatar + content rows (ported from desktop ChatMessage). */
 .chat-msg {
   display: flex;
+  gap: 10px;
+  max-width: 85%;
+  animation: chat-fadein 0.2s ease-in;
 }
 
 .chat-msg--user {
-  justify-content: flex-end;
+  align-self: flex-end;
+  flex-direction: row-reverse;
 }
 
 .chat-msg--assistant {
-  justify-content: flex-start;
+  align-self: flex-start;
 }
 
-.chat-msg__bubble {
-  max-width: 760px;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
+@keyframes chat-fadein {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-msg__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   background: var(--bg-elevated);
+  color: var(--text-muted);
+  flex-shrink: 0;
 }
 
-.chat-msg--user .chat-msg__bubble {
-  background: var(--accent-muted);
-  border-color: transparent;
+.chat-msg--error .chat-msg__avatar {
+  background: var(--error-muted);
 }
 
-.chat-msg__bubble--error {
-  border-color: var(--error);
+.chat-msg__erricon {
+  color: var(--error);
+}
+
+.chat-msg__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* Flat message body (matches the desktop MessageContent — no colored bubble). */
+.chat-msg__bubble {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  word-wrap: break-word;
+}
+
+.chat-msg--error .chat-msg__bubble {
   color: var(--error);
 }
 
 .chat-msg__text {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--text-primary);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.chat-msg__footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.chat-msg--user .chat-msg__footer {
+  justify-content: flex-end;
+}
+
+.chat-msg__time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.chat-msg__copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition), color var(--transition), background var(--transition);
+}
+
+.chat-msg__copy--visible {
+  opacity: 0.7;
+}
+
+.chat-msg:hover .chat-msg__copy {
+  opacity: 0.7;
+}
+
+.chat-msg__copy:hover {
+  opacity: 1;
+  color: var(--accent);
+  background: var(--bg-tertiary);
+}
+
+/* Collapsible reasoning panel (ported from desktop ThinkingPanel). */
+.thinking {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.thinking__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.thinking__chevron {
+  display: inline-flex;
+  transition: transform var(--transition);
+}
+
+.thinking__chevron--open {
+  transform: rotate(90deg);
+}
+
+.thinking__label {
+  font-weight: 500;
+}
+
+.thinking__duration {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.thinking__body {
+  padding: 8px 10px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+  white-space: pre-wrap;
 }
 
 /* Markdown rendering for assistant turns */
@@ -207,23 +335,37 @@
   margin-bottom: 6px;
 }
 
-/* Tool-call card (ported from desktop ToolCallBubble header) */
+/* Tool-call card (ported from desktop ToolCallBubble) */
 .toolcall {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
   margin: 6px 0;
-  padding: 8px 12px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  background: var(--bg-secondary);
-  font-size: 13px;
+  background: var(--bg-elevated);
+  overflow: hidden;
 }
 
 .toolcall--error {
   border-color: var(--error);
   background: var(--error-muted);
+}
+
+.toolcall__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+
+.toolcall__header:hover {
+  background: var(--bg-hover);
 }
 
 .toolcall__left {
@@ -294,6 +436,226 @@
 .toolcall__errtext {
   font-size: 11px;
   color: var(--error);
+}
+
+.toolcall__status {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--success);
+  font-weight: 600;
+}
+
+.toolcall__details {
+  padding: 0 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toolcall__section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toolcall__seclabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.toolcall__code {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow: auto;
+}
+
+/* Interleaved thinking segments (italic, muted). */
+.chat-msg__rounds {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-msg__thinking {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.chat-msg__thinking p,
+.chat-msg__thinking li,
+.chat-msg__thinking code {
+  color: inherit;
+  font-style: inherit;
+}
+
+/* Artifact cards in a message */
+.chat-msg__artifacts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.artifact-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 360px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+}
+
+.artifact-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-muted);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.artifact-card__info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.artifact-card__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.artifact-card__filename {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.artifact-card__actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.artifact-card__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.artifact-card__action:hover {
+  background: var(--accent-muted);
+  border-color: var(--accent-muted);
+  color: var(--accent);
+}
+
+/* Right-side artifact preview panel */
+.artifact {
+  position: fixed;
+  top: var(--topbar-height);
+  bottom: var(--statusbar-height);
+  right: 0;
+  width: 480px;
+  max-width: 80vw;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border-left: 1px solid var(--border-default);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.25);
+}
+
+.artifact__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.artifact__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.artifact__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition), color var(--transition);
+}
+
+.artifact__close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.artifact__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.artifact__loading {
+  padding: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.artifact__frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #fff;
+}
+
+.artifact__md {
+  padding: 16px;
+  font-size: 13px;
+  color: var(--text-primary);
 }
 
 /* Streaming indicator — three dots that light up in sequence. */

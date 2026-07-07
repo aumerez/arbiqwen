@@ -214,6 +214,14 @@
   padding: 8px 0;
 }
 
+.wlist__more {
+  padding: 7px 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-subtle);
+}
+
 /* Information Sources — cards with per-row toggles */
 .infogrid {
   display: grid;

@@ -16,6 +16,10 @@ interface ChatViewProps {
 
 export function ChatView({ messages, sending, error, onSend, onStop }: ChatViewProps) {
   const endRef = useRef<HTMLDivElement>(null);
+  let lastAssistantIndex = -1;
+  messages.forEach((m, i) => {
+    if (m.role === 'assistant') lastAssistantIndex = i;
+  });
 
   useEffect(() => {
     endRef.current?.scrollIntoView?.({ block: 'end' });
@@ -28,8 +32,12 @@ export function ChatView({ messages, sending, error, onSend, onStop }: ChatViewP
           <p className="empty">Start a conversation by sending a message below.</p>
         ) : (
           <ul className="chat__list">
-            {messages.map((message) => (
-              <ChatMessageBubble key={message.localId} message={message} />
+            {messages.map((message, index) => (
+              <ChatMessageBubble
+                key={message.localId}
+                message={message}
+                isLastAssistant={message.role === 'assistant' && index === lastAssistantIndex}
+              />
             ))}
           </ul>
         )}
