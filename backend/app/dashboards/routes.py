@@ -1,6 +1,7 @@
 """Dashboard and artifact routes."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import aiofiles
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -115,12 +116,35 @@ async def list_artifacts(current=Depends(get_current_user), session: AsyncSessio
     return list(rows.scalars().all())
 
 
+async def _load_artifact(artifact_id: int, tenant_id: int, session: AsyncSession) -> Artifact:
+    artifact = (await session.execute(select(Artifact).where(Artifact.id == artifact_id))).scalar_one_or_none()
+    if artifact is None or artifact.tenant_id != tenant_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Artifact not found")
+    return artifact
+
+
 @artifacts_router.get("/{artifact_id}", response_model=ArtifactResponseSchema)
 async def get_artifact(
     artifact_id: int, current=Depends(get_current_user), session: AsyncSession = Depends(get_session)
 ):
     """Fetch a single artifact's metadata."""
-    artifact = (await session.execute(select(Artifact).where(Artifact.id == artifact_id))).scalar_one_or_none()
-    if artifact is None or artifact.tenant_id != current["tenant_id"]:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Artifact not found")
-    return artifact
+    return await _load_artifact(artifact_id, current["tenant_id"], session)
+
+
+@artifacts_router.get("/{artifact_id}/content")
+async def get_artifact_content(
+    artifact_id: int, current=Depends(get_current_user), session: AsyncSession = Depends(get_session)
+):
+    """Stream an artifact's raw stored body with its content type.
+
+    The web artifact preview reads this directly (response.text()) and renders
+    by Content-Type: text/html in an iframe, markdown/plain through the
+    renderer. Tenant-scoped; 404 if the artifact or its file is missing.
+    """
+    artifact = await _load_artifact(artifact_id, current["tenant_id"], session)
+    try:
+        async with aiofiles.open(artifact.storage_path, "rb") as f:
+            data = await f.read()
+    except (FileNotFoundError, OSError) as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Artifact content is unavailable") from exc
+    return Response(content=data, media_type=artifact.content_type or "application/octet-stream")
