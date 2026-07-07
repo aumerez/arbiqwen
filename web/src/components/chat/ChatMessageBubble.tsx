@@ -207,10 +207,25 @@ export function ChatMessageBubble({ message, isLastAssistant = false }: ChatMess
           </div>
         )}
 
-        {!isUser && message.citations && message.citations.length > 0 && (
-          <p className="chat-msg__cites">
-            {message.citations.length} source{message.citations.length === 1 ? '' : 's'}
-          </p>
+        {!isUser && citations.length > 0 && (
+          <div className="chat-msg__sources">
+            <div className="chat-msg__sources-title">
+              Source{citations.length === 1 ? '' : 's'}
+            </div>
+            {citations.map((c, i) => (
+              <button
+                key={i}
+                type="button"
+                className="chat-msg__source"
+                onClick={() => onCite(c)}
+                disabled={!c.documentId}
+                title={c.documentId ? `Open ${c.documentName || `Source ${c.number}`}` : c.documentName || ''}
+              >
+                <span className="citation">[{c.number}]</span>
+                <span className="chat-msg__source-name">{c.documentName || `Source ${c.number}`}</span>
+              </button>
+            ))}
+          </div>
         )}
 
         <div className="chat-msg__footer">

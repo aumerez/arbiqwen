@@ -792,6 +792,55 @@
   color: var(--text-muted);
 }
 
+/* Clickable sources list (desktop citation summary). */
+.chat-msg__sources {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.chat-msg__sources-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.chat-msg__source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 6px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+
+.chat-msg__source:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.chat-msg__source:disabled {
+  cursor: default;
+}
+
+.chat-msg__source-name {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .chat__error {
   margin: 0 32px 8px;
   padding: 8px 12px;

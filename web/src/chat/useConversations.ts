@@ -198,20 +198,21 @@ export function useConversations(client: ChatClient, projectId: number | null): 
                 }));
                 break;
               case 'artifact':
-                if (chunk.id !== undefined) {
-                  patch(assistantId, (m) => ({
-                    ...m,
-                    artifacts: [
-                      ...(m.artifacts ?? []),
-                      {
-                        id: chunk.id as number | string,
-                        filename: typeof chunk.filename === 'string' ? chunk.filename : undefined,
-                        title: typeof chunk.title === 'string' ? chunk.title : undefined,
-                        contentType: typeof chunk.content_type === 'string' ? chunk.content_type : undefined,
-                      },
-                    ],
-                  }));
-                }
+                // Match the desktop: always surface the artifact card (id falls
+                // back to 0 when the chunk omits it), so a dashboard/report card
+                // appears even if the id is missing.
+                patch(assistantId, (m) => ({
+                  ...m,
+                  artifacts: [
+                    ...(m.artifacts ?? []),
+                    {
+                      id: (chunk.id as number | string | undefined) ?? 0,
+                      filename: typeof chunk.filename === 'string' ? chunk.filename : undefined,
+                      title: typeof chunk.title === 'string' ? chunk.title : undefined,
+                      contentType: typeof chunk.content_type === 'string' ? chunk.content_type : undefined,
+                    },
+                  ],
+                }));
                 break;
               case 'thinking_start':
                 patch(assistantId, (m) => ({
