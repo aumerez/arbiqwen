@@ -12,6 +12,94 @@ from collections.abc import AsyncGenerator
 from app.config import settings
 
 
+def _anthropic_tools_to_openai(tools: list[dict]) -> list[dict]:
+    """Convert Anthropic-native tool defs to OpenAI function-tool defs.
+
+    Anthropic: {"name", "description", "input_schema": {...}}
+    OpenAI:    {"type": "function", "function": {"name", "description", "parameters": {...}}}
+    Underscore-prefixed keys (internal markers) are dropped.
+    """
+    converted: list[dict] = []
+    for t in tools:
+        clean = {k: v for k, v in t.items() if not k.startswith("_")}
+        converted.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": clean.get("name"),
+                    "description": clean.get("description", ""),
+                    "parameters": clean.get("input_schema") or {"type": "object", "properties": {}},
+                },
+            }
+        )
+    return converted
+
+
+def _anthropic_messages_to_openai(messages: list[dict]) -> list[dict]:
+    """Convert canonical Anthropic-native messages to OpenAI chat messages.
+
+    The agent loop speaks one canonical shape (Anthropic content blocks). This
+    adapts it to the OpenAI Chat Completions shape so tool rounds work on
+    OpenAI-compatible providers (DashScope/Qwen):
+    - assistant content-blocks with tool_use -> assistant {content, tool_calls}
+    - user content-blocks with tool_result -> one `tool` message per result
+    - plain string content passes through unchanged
+    """
+    out: list[dict] = []
+    for m in messages:
+        role = m.get("role")
+        content = m.get("content")
+
+        if isinstance(content, str) or content is None:
+            out.append({"role": role, "content": content})
+            continue
+
+        # content is a list of Anthropic blocks
+        if role == "assistant":
+            text_parts: list[str] = []
+            tool_calls: list[dict] = []
+            for block in content:
+                btype = block.get("type")
+                if btype == "text":
+                    text_parts.append(block.get("text", ""))
+                elif btype == "tool_use":
+                    tool_calls.append(
+                        {
+                            "id": block.get("id"),
+                            "type": "function",
+                            "function": {
+                                "name": block.get("name"),
+                                "arguments": json.dumps(block.get("input") or {}),
+                            },
+                        }
+                    )
+            msg: dict = {"role": "assistant", "content": "".join(text_parts) or None}
+            if tool_calls:
+                msg["tool_calls"] = tool_calls
+            out.append(msg)
+        else:
+            # user (or tool) blocks — tool_result blocks become `tool` messages,
+            # any text blocks become a trailing user message.
+            text_parts = []
+            for block in content:
+                if block.get("type") == "tool_result":
+                    result_content = block.get("content")
+                    if isinstance(result_content, list):
+                        result_content = "".join(b.get("text", "") for b in result_content if isinstance(b, dict))
+                    out.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": block.get("tool_use_id"),
+                            "content": result_content if isinstance(result_content, str) else str(result_content),
+                        }
+                    )
+                elif block.get("type") == "text":
+                    text_parts.append(block.get("text", ""))
+            if text_parts:
+                out.append({"role": "user", "content": "".join(text_parts)})
+    return out
+
+
 class LLMProvider(ABC):
     """Abstract LLM provider interface."""
 
@@ -182,14 +270,14 @@ class AlibabaProvider(LLMProvider):
     ) -> AsyncGenerator[dict, None]:
         kwargs: dict = {
             "model": self.model,
-            "messages": messages,
+            "messages": _anthropic_messages_to_openai(messages),
             "temperature": temperature,
             "max_tokens": max_tokens,
             "stream": True,
             "stream_options": {"include_usage": True},
         }
         if tools:
-            kwargs["tools"] = tools
+            kwargs["tools"] = _anthropic_tools_to_openai(tools)
 
         # Tool-call fragments arrive spread across chunks (by index) and must be
         # accumulated before they can be emitted.
