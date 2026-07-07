@@ -9,6 +9,7 @@ export type ChatRole = 'user' | 'assistant';
 
 export interface ChatCitation {
   number?: number;
+  documentId?: number;
   documentName?: string;
   pageNumber?: number;
   snippet?: string;
