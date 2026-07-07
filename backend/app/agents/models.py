@@ -22,9 +22,13 @@ class AgentStatus(StrEnum):
     draft = "draft"
     queued = "queued"
     working = "working"
+    # Paused at a human-in-the-loop checkpoint: the agent proposed a write and
+    # is waiting for approve/reject before executing it.
+    waiting_approval = "waiting_approval"
     reporting = "reporting"
     done = "done"
     failed = "failed"
+    rejected = "rejected"
 
 
 class AgentTrigger(StrEnum):
@@ -89,6 +93,12 @@ class AgentRun(Base):
     trigger_input: Mapped[str | None] = mapped_column(Text, nullable=True)
     result_md: Mapped[str | None] = mapped_column(Text, nullable=True)
     error: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # Human-in-the-loop checkpoint state:
+    # - pending_action: the proposed write awaiting approval {tool_name, tool_input}
+    # - messages: serialized conversation, persisted so approve/reject can resume
+    #   the loop from where it paused.
+    pending_action: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    messages: Mapped[list | None] = mapped_column(JSON, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
