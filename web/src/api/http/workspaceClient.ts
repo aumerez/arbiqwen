@@ -14,6 +14,14 @@ export interface RawDashboard {
   id: number;
   title: string;
   project_id?: number;
+  short_name?: string | null;
+  description?: string | null;
+  template?: string | null;
+  sections?: string[] | null;
+  last_rendered_at?: string | null;
+  // The artifact id of the last rendered HTML — present once the dashboard
+  // has been drawn at least once. Null means "never rendered" (not openable).
+  cached_artifact_id?: number | null;
 }
 
 export interface RawAgent {

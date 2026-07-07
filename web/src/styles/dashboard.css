@@ -173,6 +173,25 @@
   background: transparent;
 }
 
+/* Clickable row rendered as a <button> — inherit the surrounding font so it
+   matches the static <div> rows. */
+.wrow--button {
+  font: inherit;
+}
+
+/* Template chip on a dashboard row (e.g. "Executive"). */
+.wrow__tag {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
 .wrow__icon {
   width: 26px;
   height: 26px;
