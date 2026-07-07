@@ -2,7 +2,7 @@ import hashlib
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from jose import JWTError, jwt
+import jwt
 
 from app.config import settings
 
@@ -61,9 +61,9 @@ def decode_token(token: str) -> dict | None:
             token,
             settings.JWT_SECRET,
             algorithms=[ALGORITHM],
-            options={"leeway": 30},
+            leeway=timedelta(seconds=30),
         )
-    except JWTError:
+    except jwt.PyJWTError:
         return None
 
 
