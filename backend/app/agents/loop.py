@@ -35,6 +35,7 @@ from app.agents.models import AgentDefinition, AgentRun, AgentStatus
 from app.agents.runner import ToolNotAllowed, run_step
 from app.agents.schemas import RunStepMessage, RunStepRequest
 from app.agents.service import transition_status
+from app.agents.tools import build_registry
 from app.database.connection import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
@@ -61,13 +62,9 @@ Match the language and format the user asked for in the task prompt."""
 
 
 async def _build_tool_registry(definition: AgentDefinition) -> tuple[ToolRegistry, list[dict]]:
-    """Build the (registry, tool_definitions) pair for this run.
-
-    Empty in this PR — the loop runs text-only reasoning. feat/agent-tools
-    returns the definition's allowed Twenty/Plane callables plus their schemas
-    here, with no other change to the loop.
-    """
-    return {}, []
+    """Build the (registry, tool_definitions) pair for this run from the
+    definition's allowed_tools. Unknown/unimplemented names are ignored."""
+    return build_registry(definition.allowed_tools)
 
 
 async def run_agent(run_id: int) -> None:
