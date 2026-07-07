@@ -3,7 +3,7 @@
 import hashlib
 import logging
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -172,6 +172,33 @@ async def get_document(
     if doc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     return doc
+
+
+@router.get("/{document_id}/file")
+async def get_document_file(
+    document_id: int,
+    current=Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """Stream a document's stored source file with its mimetype.
+
+    The web citation/preview panel fetches this to render the source document.
+    Owner-scoped; 404 if the document or its stored file is missing.
+    """
+    doc = (
+        await session.execute(select(Document).where(Document.id == document_id, Document.user_id == current["id"]))
+    ).scalar_one_or_none()
+    if doc is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    try:
+        data = await get_storage_provider().read_file(doc.tenant_id, doc.id, doc.filename)
+    except (FileNotFoundError, OSError) as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document file is unavailable") from exc
+    return Response(
+        content=data,
+        media_type=doc.mimetype or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{doc.filename}"'},
+    )
 
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
