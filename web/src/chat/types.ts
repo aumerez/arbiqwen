@@ -19,6 +19,9 @@ export interface ChatToolResult {
   statusCode?: number;
   recordCount?: number;
   durationMs?: number;
+  sizeChars?: number;
+  preview?: string;
+  rawPreview?: string;
 }
 
 export interface ChatToolCall {
@@ -27,7 +30,15 @@ export interface ChatToolCall {
   integrationKey?: string;
   skillKey?: string;
   operationId?: string;
+  input?: Record<string, unknown>;
   result?: ChatToolResult;
+}
+
+// A committed "thinking" segment (the model's text during a tool-using round),
+// rendered before the tool card at beforeToolIndex.
+export interface ThinkingBlock {
+  content: string;
+  beforeToolIndex: number;
 }
 
 export interface ArtifactView {
@@ -52,6 +63,10 @@ export interface ChatMessageView {
   toolCalls?: ChatToolCall[];
   artifacts?: ArtifactView[];
   thinking?: ChatThinking;
+  /** Committed thinking segments, interleaved with tool cards by position. */
+  thinkingBlocks?: ThinkingBlock[];
+  /** True once the backend's segment_role:synthesis marker has flipped. */
+  inSynthesis?: boolean;
   /** ISO timestamp for the footer. */
   createdAt?: string;
   /** True while the assistant message is still streaming. */
@@ -80,6 +95,11 @@ export interface StreamChunk {
   status_code?: number;
   duration_ms?: number;
   record_count?: number;
+  size_chars?: number;
+  preview?: string;
+  raw_preview?: string;
+  input?: Record<string, unknown>;
+  kind?: string;
   id?: number | string;
   filename?: string;
   title?: string;

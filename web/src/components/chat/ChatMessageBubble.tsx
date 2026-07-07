@@ -1,22 +1,26 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { AlertTriangle, Check, Copy, User } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { NucleusMark } from '../brand/NucleusMark';
-import type { ChatMessageView } from '../../chat/types';
+import type { ChatMessageView, ThinkingBlock } from '../../chat/types';
 import { ToolCallBubble } from './ToolCallBubble';
-import { ThinkingPanel } from './ThinkingPanel';
 import { ArtifactCard } from './ArtifactCard';
+import { ThinkingPanel } from './ThinkingPanel';
 
-// One message row, ported from the desktop ChatMessage: an avatar (the Nucleus
-// mark for the assistant, a user icon for you), the markdown body in an
-// asymmetric bubble, a collapsible thinking panel, tool-call cards, and a footer
-// with the timestamp and a hover copy button. Assistant rows sit left; user rows
-// mirror to the right.
+// One message row, ported from the desktop ChatMessage. Assistant turns render
+// the Nucleus-mark avatar, an optional reasoning panel, then thinking segments
+// interleaved with tool cards, the synthesis body, artifact cards, and a footer
+// (timestamp + hover copy). User turns mirror to the right. The body is flat
+// markdown (no colored bubble), matching the desktop.
 function formatTime(iso?: string): string {
   if (!iso) return '';
   const d = new Date(iso);
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function Markdown({ text }: { text: string }) {
+  return <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>;
 }
 
 interface ChatMessageBubbleProps {
@@ -28,7 +32,18 @@ export function ChatMessageBubble({ message, isLastAssistant = false }: ChatMess
   const [copied, setCopied] = useState(false);
   const isUser = message.role === 'user';
   const isError = !!message.error;
-  const showBubble = message.content.length > 0 || (message.streaming && !isUser);
+
+  const tools = message.toolCalls ?? [];
+  const blocks = message.thinkingBlocks ?? [];
+  const blocksByTool = new Map<number, ThinkingBlock[]>();
+  const trailing: ThinkingBlock[] = [];
+  for (const b of blocks) {
+    if (b.beforeToolIndex >= tools.length) trailing.push(b);
+    else blocksByTool.set(b.beforeToolIndex, [...(blocksByTool.get(b.beforeToolIndex) ?? []), b]);
+  }
+  const hasRounds = !isUser && (tools.length > 0 || blocks.length > 0);
+  const bodyIsThinking = !!message.streaming && !message.inSynthesis && hasRounds;
+  const showBubble = message.content.length > 0 || (!!message.streaming && !isUser);
 
   async function copy() {
     try {
@@ -55,17 +70,29 @@ export function ChatMessageBubble({ message, isLastAssistant = false }: ChatMess
       <div className="chat-msg__content">
         {!isUser && message.thinking && <ThinkingPanel thinking={message.thinking} />}
 
-        {!isUser && message.toolCalls && message.toolCalls.length > 0 && (
-          <div className="chat-msg__tools">
-            {message.toolCalls.map((tool, index) => (
-              <ToolCallBubble key={tool.id ?? index} tool={tool} />
+        {hasRounds && (
+          <div className="chat-msg__rounds">
+            {tools.map((tool, idx) => (
+              <Fragment key={tool.id ?? idx}>
+                {(blocksByTool.get(idx) ?? []).map((b, bi) => (
+                  <div key={`b-${idx}-${bi}`} className="chat-msg__thinking chat-msg__md">
+                    <Markdown text={b.content} />
+                  </div>
+                ))}
+                <ToolCallBubble tool={tool} />
+              </Fragment>
+            ))}
+            {trailing.map((b, bi) => (
+              <div key={`bt-${bi}`} className="chat-msg__thinking chat-msg__md">
+                <Markdown text={b.content} />
+              </div>
             ))}
           </div>
         )}
 
         {showBubble && (
-          <div className="chat-msg__bubble chat-msg__md">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+          <div className={`chat-msg__bubble chat-msg__md${bodyIsThinking ? ' chat-msg__thinking' : ''}`}>
+            <Markdown text={message.content} />
             {message.streaming && <span className="chat-msg__caret" aria-hidden="true" />}
           </div>
         )}

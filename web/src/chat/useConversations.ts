@@ -21,6 +21,7 @@ function toToolCall(chunk: StreamChunk): ChatToolCall {
     integrationKey: typeof chunk.integration_key === 'string' ? chunk.integration_key : undefined,
     skillKey: typeof chunk.skill_key === 'string' ? chunk.skill_key : undefined,
     operationId: typeof chunk.operation_id === 'string' ? chunk.operation_id : undefined,
+    input: chunk.input && typeof chunk.input === 'object' ? chunk.input : undefined,
   };
 }
 
@@ -30,6 +31,9 @@ function toToolResult(chunk: StreamChunk) {
     statusCode: typeof chunk.status_code === 'number' ? chunk.status_code : undefined,
     recordCount: typeof chunk.record_count === 'number' ? chunk.record_count : undefined,
     durationMs: typeof chunk.duration_ms === 'number' ? chunk.duration_ms : undefined,
+    sizeChars: typeof chunk.size_chars === 'number' ? chunk.size_chars : undefined,
+    preview: typeof chunk.preview === 'string' ? chunk.preview : undefined,
+    rawPreview: typeof chunk.raw_preview === 'string' ? chunk.raw_preview : undefined,
   };
 }
 
@@ -152,7 +156,29 @@ export function useConversations(client: ChatClient, projectId: number | null): 
             switch (chunk.type) {
               case 'text':
                 if (typeof chunk.text === 'string') {
+                  // Accumulate into the current segment (the live body).
                   patch(assistantId, (m) => ({ ...m, content: m.content + chunk.text }));
+                }
+                break;
+              case 'segment_role':
+                // The backend classifies the round that just ended:
+                // "thinking" → commit the current segment as a thinking block
+                // (rendered before this round's tool cards) and reset it;
+                // "synthesis" → the rest is the answer body.
+                if (chunk.kind === 'thinking') {
+                  patch(assistantId, (m) => {
+                    if (!m.content.trim()) return m;
+                    return {
+                      ...m,
+                      thinkingBlocks: [
+                        ...(m.thinkingBlocks ?? []),
+                        { content: m.content, beforeToolIndex: m.toolCalls?.length ?? 0 },
+                      ],
+                      content: '',
+                    };
+                  });
+                } else if (chunk.kind === 'synthesis') {
+                  patch(assistantId, (m) => ({ ...m, inSynthesis: true }));
                 }
                 break;
               case 'citations':

@@ -335,23 +335,37 @@
   margin-bottom: 6px;
 }
 
-/* Tool-call card (ported from desktop ToolCallBubble header) */
+/* Tool-call card (ported from desktop ToolCallBubble) */
 .toolcall {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
   margin: 6px 0;
-  padding: 8px 12px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  background: var(--bg-secondary);
-  font-size: 13px;
+  background: var(--bg-elevated);
+  overflow: hidden;
 }
 
 .toolcall--error {
   border-color: var(--error);
   background: var(--error-muted);
+}
+
+.toolcall__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+
+.toolcall__header:hover {
+  background: var(--bg-hover);
 }
 
 .toolcall__left {
@@ -422,6 +436,66 @@
 .toolcall__errtext {
   font-size: 11px;
   color: var(--error);
+}
+
+.toolcall__status {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--success);
+  font-weight: 600;
+}
+
+.toolcall__details {
+  padding: 0 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toolcall__section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toolcall__seclabel {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.toolcall__code {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow: auto;
+}
+
+/* Interleaved thinking segments (italic, muted). */
+.chat-msg__rounds {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-msg__thinking {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.chat-msg__thinking p,
+.chat-msg__thinking li,
+.chat-msg__thinking code {
+  color: inherit;
+  font-style: inherit;
 }
 
 /* Artifact cards in a message */
