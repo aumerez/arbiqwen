@@ -133,7 +133,12 @@ export function ChatMessageBubble({ message, isLastAssistant = false }: ChatMess
   const isError = !!message.error;
   const citations = message.citations ?? [];
   const onCite = (c: ChatCitation) =>
-    openDocumentPreview({ documentId: c.documentId ?? 0, documentName: c.documentName || `Source ${c.number ?? ''}` });
+    openDocumentPreview({
+      documentId: c.documentId,
+      documentName: c.documentName || `Source ${c.number ?? ''}`,
+      pageNumber: c.pageNumber,
+      snippet: c.snippet,
+    });
 
   const tools = message.toolCalls ?? [];
   const blocks = message.thinkingBlocks ?? [];
@@ -218,8 +223,7 @@ export function ChatMessageBubble({ message, isLastAssistant = false }: ChatMess
                 type="button"
                 className="chat-msg__source"
                 onClick={() => onCite(c)}
-                disabled={!c.documentId}
-                title={c.documentId ? `Open ${c.documentName || `Source ${c.number}`}` : c.documentName || ''}
+                title={`Open ${c.documentName || `Source ${c.number}`}`}
               >
                 <span className="citation">[{c.number}]</span>
                 <span className="chat-msg__source-name">{c.documentName || `Source ${c.number}`}</span>

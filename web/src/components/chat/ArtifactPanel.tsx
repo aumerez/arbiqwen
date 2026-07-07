@@ -11,8 +11,10 @@ import type { ArtifactView } from '../../chat/types';
 // HTML renders in a sandboxed iframe, PDFs/images via a blob URL, and
 // markdown/text via the markdown renderer. Read-only.
 export interface DocumentPreview {
-  documentId: number;
+  documentId?: number;
   documentName: string;
+  pageNumber?: number;
+  snippet?: string;
 }
 
 interface PanelState {
@@ -21,6 +23,7 @@ interface PanelState {
   contentType: string;
   text: string;
   url: string | null;
+  snippet: string;
   loading: boolean;
   openPreview: (artifact: ArtifactView) => void;
   openDocumentPreview: (doc: DocumentPreview) => void;
@@ -34,6 +37,7 @@ const PanelContext = createContext<PanelState>({
   contentType: '',
   text: '',
   url: null,
+  snippet: '',
   loading: false,
   openPreview: noop,
   openDocumentPreview: noop,
@@ -58,6 +62,7 @@ export function ArtifactPanelProvider({
   const [contentType, setContentType] = useState('');
   const [text, setText] = useState('');
   const [url, setUrl] = useState<string | null>(null);
+  const [snippet, setSnippet] = useState('');
   const [loading, setLoading] = useState(false);
 
   const begin = useCallback((nextTitle: string) => {
@@ -66,6 +71,7 @@ export function ArtifactPanelProvider({
     setLoading(true);
     setText('');
     setUrl(null);
+    setSnippet('');
     setContentType('');
   }, []);
 
@@ -89,8 +95,16 @@ export function ArtifactPanelProvider({
 
   const openDocumentPreview = useCallback(
     (doc: DocumentPreview) => {
-      if (!doc.documentId) return;
-      begin(doc.documentName || `Source ${doc.documentId}`);
+      // Always open the panel — matching the desktop. Citations from a
+      // qdrant-style knowledge base carry no local documentId (it arrives
+      // null), so there's no file to fetch; we show the cited snippet
+      // instead of silently doing nothing.
+      begin(doc.documentName || `Source ${doc.documentId ?? ''}`);
+      setSnippet(doc.snippet ?? '');
+      if (!doc.documentId) {
+        setLoading(false);
+        return;
+      }
       void documentsClient
         .getFile(doc.documentId)
         .then((res) => {
@@ -111,7 +125,7 @@ export function ArtifactPanelProvider({
 
   return (
     <PanelContext.Provider
-      value={{ open, title, contentType, text, url, loading, openPreview, openDocumentPreview, close }}
+      value={{ open, title, contentType, text, url, snippet, loading, openPreview, openDocumentPreview, close }}
     >
       {children}
     </PanelContext.Provider>
@@ -119,10 +133,11 @@ export function ArtifactPanelProvider({
 }
 
 export function ArtifactPanel() {
-  const { open, title, contentType, text, url, loading, close } = useArtifactPanel();
+  const { open, title, contentType, text, url, snippet, loading, close } = useArtifactPanel();
   if (!open) return null;
 
   const isHtml = contentType.toLowerCase().includes('html');
+  const hasContent = !!url || !!text;
 
   return (
     <aside className="artifact" aria-label="Preview">
@@ -139,10 +154,19 @@ export function ArtifactPanel() {
           <iframe className="artifact__frame" title={title} src={url} />
         ) : isHtml ? (
           <iframe className="artifact__frame" title={title} srcDoc={text} sandbox="" />
-        ) : (
+        ) : hasContent ? (
           <div className="artifact__md chat-msg__md">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
           </div>
+        ) : snippet ? (
+          // No fetchable document (qdrant-sourced citation) — show the cited
+          // excerpt, mirroring the desktop's "Source excerpt" fallback.
+          <div className="artifact__excerpt">
+            <p className="artifact__excerpt-label">Source excerpt</p>
+            <blockquote className="artifact__excerpt-quote">{snippet}</blockquote>
+          </div>
+        ) : (
+          <p className="artifact__loading">No preview available.</p>
         )}
       </div>
     </aside>
