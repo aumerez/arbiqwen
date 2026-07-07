@@ -10,6 +10,8 @@ import { LoadingState, ErrorState } from './DataStates';
 import { ChatView } from './chat/ChatView';
 import { ProjectsView } from './ProjectsView';
 import { ProjectDashboard } from './ProjectDashboard';
+import { ArtifactPanel, ArtifactPanelProvider } from './chat/ArtifactPanel';
+import { createArtifactsClient } from '../api/http/artifactsClient';
 import { createReadAdapter } from '../api/http/readAdapter';
 import { createChatClient } from '../api/http/chatClient';
 import { createProjectsClient } from '../api/http/projectsClient';
@@ -44,6 +46,7 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
   const chatClient = useMemo(() => createChatClient({ baseUrl, getToken }), [baseUrl]);
   const projectsClient = useMemo(() => createProjectsClient({ baseUrl, getToken }), [baseUrl]);
   const workspaceClient = useMemo(() => createWorkspaceClient({ baseUrl, getToken }), [baseUrl]);
+  const artifactsClient = useMemo(() => createArtifactsClient({ baseUrl, getToken }), [baseUrl]);
 
   const projects = useProjects(projectsClient);
   const convo = useConversations(chatClient, projects.currentProject?.id ?? null);
@@ -105,7 +108,8 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
   );
 
   return (
-    <AppShell sidebar={sidebar} sectionLabel={sectionLabel} onLogout={onLogout}>
+    <ArtifactPanelProvider client={artifactsClient}>
+      <AppShell sidebar={sidebar} sectionLabel={sectionLabel} onLogout={onLogout}>
       {active === 'home' && projects.currentProject && (
         <ProjectDashboard
           project={projects.currentProject}
@@ -192,6 +196,8 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
           )}
         </>
       )}
-    </AppShell>
+      </AppShell>
+      <ArtifactPanel />
+    </ArtifactPanelProvider>
   );
 }

@@ -6,6 +6,7 @@ import { NucleusMark } from '../brand/NucleusMark';
 import type { ChatMessageView } from '../../chat/types';
 import { ToolCallBubble } from './ToolCallBubble';
 import { ThinkingPanel } from './ThinkingPanel';
+import { ArtifactCard } from './ArtifactCard';
 
 // One message row, ported from the desktop ChatMessage: an avatar (the Nucleus
 // mark for the assistant, a user icon for you), the markdown body in an
@@ -72,6 +73,14 @@ export function ChatMessageBubble({ message, isLastAssistant = false }: ChatMess
                 {message.streaming && <span className="chat-msg__caret" aria-hidden="true" />}
               </div>
             )}
+          </div>
+        )}
+
+        {!isUser && message.artifacts && message.artifacts.length > 0 && (
+          <div className="chat-msg__artifacts">
+            {message.artifacts.map((artifact) => (
+              <ArtifactCard key={artifact.id} artifact={artifact} />
+            ))}
           </div>
         )}
 

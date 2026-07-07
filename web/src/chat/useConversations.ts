@@ -171,6 +171,22 @@ export function useConversations(client: ChatClient, projectId: number | null): 
                   ),
                 }));
                 break;
+              case 'artifact':
+                if (chunk.id !== undefined) {
+                  patch(assistantId, (m) => ({
+                    ...m,
+                    artifacts: [
+                      ...(m.artifacts ?? []),
+                      {
+                        id: chunk.id as number | string,
+                        filename: typeof chunk.filename === 'string' ? chunk.filename : undefined,
+                        title: typeof chunk.title === 'string' ? chunk.title : undefined,
+                        contentType: typeof chunk.content_type === 'string' ? chunk.content_type : undefined,
+                      },
+                    ],
+                  }));
+                }
+                break;
               case 'thinking_start':
                 patch(assistantId, (m) => ({
                   ...m,

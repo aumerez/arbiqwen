@@ -7,11 +7,13 @@ import type { ProjectView } from '../../projects/useProjects';
 // a row activates that project. Read-only: no create/delete here.
 export function ProjectsWidget({ projects, onSelect }: { projects: ProjectView[]; onSelect: (id: number) => void }) {
   const hint = projects.length === 0 ? 'No projects yet' : undefined;
+  const visible = projects.slice(0, 5);
+  const overflow = projects.length - visible.length;
   return (
     <Widget title="Projects" icon={FolderOpen} count={projects.length} hint={hint}>
-      {projects.length > 0 && (
+      {visible.length > 0 && (
         <div className="wlist">
-          {projects.map((p) => (
+          {visible.map((p) => (
             <button key={p.id} type="button" className="wrow" onClick={() => onSelect(p.id)}>
               <span className="wrow__icon">
                 <FolderOpen size={13} strokeWidth={1.5} />
@@ -22,6 +24,7 @@ export function ProjectsWidget({ projects, onSelect }: { projects: ProjectView[]
               </span>
             </button>
           ))}
+          {overflow > 0 && <div className="wlist__more">+{overflow} more</div>}
         </div>
       )}
     </Widget>

@@ -30,6 +30,13 @@ export interface ChatToolCall {
   result?: ChatToolResult;
 }
 
+export interface ArtifactView {
+  id: number | string;
+  filename?: string;
+  title?: string;
+  contentType?: string;
+}
+
 export interface ChatThinking {
   content: string;
   streaming: boolean;
@@ -43,6 +50,7 @@ export interface ChatMessageView {
   content: string;
   citations?: ChatCitation[];
   toolCalls?: ChatToolCall[];
+  artifacts?: ArtifactView[];
   thinking?: ChatThinking;
   /** ISO timestamp for the footer. */
   createdAt?: string;
@@ -72,5 +80,9 @@ export interface StreamChunk {
   status_code?: number;
   duration_ms?: number;
   record_count?: number;
+  id?: number | string;
+  filename?: string;
+  title?: string;
+  content_type?: string;
   [key: string]: unknown;
 }

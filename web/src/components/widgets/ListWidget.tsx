@@ -38,12 +38,17 @@ export function ListWidget({ title, icon, rowIcon: RowIcon, emptyHint, loader }:
 
   const count = rows?.length ?? 0;
   const hint = rows && rows.length === 0 ? emptyHint : undefined;
+  // Dashboard tiles show only the most recent few; the header count reflects the
+  // true total, matching the desktop widgets.
+  const LIMIT = 5;
+  const visible = rows ? rows.slice(0, LIMIT) : [];
+  const overflow = count - visible.length;
 
   return (
     <Widget title={title} icon={icon} count={count} hint={hint}>
-      {rows && rows.length > 0 && (
+      {visible.length > 0 && (
         <div className="wlist">
-          {rows.map((row) => (
+          {visible.map((row) => (
             <div key={row.id} className="wrow wrow--static">
               <span className="wrow__icon">
                 <RowIcon size={13} strokeWidth={1.5} />
@@ -54,6 +59,7 @@ export function ListWidget({ title, icon, rowIcon: RowIcon, emptyHint, loader }:
               </span>
             </div>
           ))}
+          {overflow > 0 && <div className="wlist__more">+{overflow} more</div>}
         </div>
       )}
     </Widget>
