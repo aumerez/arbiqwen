@@ -1,12 +1,13 @@
-import { Fragment, useState } from 'react';
+import { Children, Fragment, useState, type ReactNode } from 'react';
 import { AlertTriangle, Check, Copy, User } from 'lucide-react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { NucleusMark } from '../brand/NucleusMark';
-import type { ChatMessageView, ThinkingBlock } from '../../chat/types';
+import type { ChatCitation, ChatMessageView, ThinkingBlock } from '../../chat/types';
 import { ToolCallBubble } from './ToolCallBubble';
 import { ArtifactCard } from './ArtifactCard';
 import { ThinkingPanel } from './ThinkingPanel';
+import { useArtifactPanel } from './ArtifactPanel';
 
 // One message row, ported from the desktop ChatMessage. Assistant turns render
 // the Nucleus-mark avatar, an optional reasoning panel, then thinking segments
@@ -48,7 +49,48 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
   );
 }
 
-function Markdown({ text }: { text: string }) {
+function renderWithCitations(
+  children: ReactNode,
+  citations: ChatCitation[],
+  onCite: (c: ChatCitation) => void,
+): ReactNode {
+  return Children.map(children, (child) => {
+    if (typeof child === 'string' && citations.length > 0 && /\[\d+\]/.test(child)) {
+      return child.split(/(\[\d+\])/g).map((part, i) => {
+        const m = part.match(/^\[(\d+)\]$/);
+        if (m) {
+          const num = parseInt(m[1], 10);
+          const c = citations.find((x) => x.number === num);
+          if (c) {
+            return (
+              <button
+                key={i}
+                type="button"
+                className="citation"
+                title={c.documentName || `Source ${num}`}
+                onClick={() => onCite(c)}
+              >
+                [{num}]
+              </button>
+            );
+          }
+        }
+        return part;
+      });
+    }
+    return child;
+  });
+}
+
+function Markdown({
+  text,
+  citations = [],
+  onCite,
+}: {
+  text: string;
+  citations?: ChatCitation[];
+  onCite?: (c: ChatCitation) => void;
+}) {
   const components: Components = {
     pre: ({ children }) => <>{children}</>,
     code: ({ className, children }) => {
@@ -68,6 +110,10 @@ function Markdown({ text }: { text: string }) {
       </a>
     ),
   };
+  if (citations.length > 0 && onCite) {
+    components.p = ({ children }) => <p>{renderWithCitations(children, citations, onCite)}</p>;
+    components.li = ({ children }) => <li>{renderWithCitations(children, citations, onCite)}</li>;
+  }
   return (
     <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
       {text}
@@ -82,8 +128,12 @@ interface ChatMessageBubbleProps {
 
 export function ChatMessageBubble({ message, isLastAssistant = false }: ChatMessageBubbleProps) {
   const [copied, setCopied] = useState(false);
+  const { openDocumentPreview } = useArtifactPanel();
   const isUser = message.role === 'user';
   const isError = !!message.error;
+  const citations = message.citations ?? [];
+  const onCite = (c: ChatCitation) =>
+    openDocumentPreview({ documentId: c.documentId ?? 0, documentName: c.documentName || `Source ${c.number ?? ''}` });
 
   const tools = message.toolCalls ?? [];
   const blocks = message.thinkingBlocks ?? [];
@@ -128,7 +178,7 @@ export function ChatMessageBubble({ message, isLastAssistant = false }: ChatMess
               <Fragment key={tool.id ?? idx}>
                 {(blocksByTool.get(idx) ?? []).map((b, bi) => (
                   <div key={`b-${idx}-${bi}`} className="chat-msg__thinking chat-msg__md">
-                    <Markdown text={b.content} />
+                    <Markdown text={b.content} citations={citations} onCite={onCite} />
                   </div>
                 ))}
                 <ToolCallBubble tool={tool} />
@@ -136,7 +186,7 @@ export function ChatMessageBubble({ message, isLastAssistant = false }: ChatMess
             ))}
             {trailing.map((b, bi) => (
               <div key={`bt-${bi}`} className="chat-msg__thinking chat-msg__md">
-                <Markdown text={b.content} />
+                <Markdown text={b.content} citations={citations} onCite={onCite} />
               </div>
             ))}
           </div>
@@ -144,7 +194,7 @@ export function ChatMessageBubble({ message, isLastAssistant = false }: ChatMess
 
         {showBubble && (
           <div className={`chat-msg__bubble chat-msg__md${bodyIsThinking ? ' chat-msg__thinking' : ''}`}>
-            <Markdown text={message.content} />
+            <Markdown text={message.content} citations={citations} onCite={onCite} />
             {message.streaming && <span className="chat-msg__caret" aria-hidden="true" />}
           </div>
         )}
@@ -157,10 +207,25 @@ export function ChatMessageBubble({ message, isLastAssistant = false }: ChatMess
           </div>
         )}
 
-        {!isUser && message.citations && message.citations.length > 0 && (
-          <p className="chat-msg__cites">
-            {message.citations.length} source{message.citations.length === 1 ? '' : 's'}
-          </p>
+        {!isUser && citations.length > 0 && (
+          <div className="chat-msg__sources">
+            <div className="chat-msg__sources-title">
+              Source{citations.length === 1 ? '' : 's'}
+            </div>
+            {citations.map((c, i) => (
+              <button
+                key={i}
+                type="button"
+                className="chat-msg__source"
+                onClick={() => onCite(c)}
+                disabled={!c.documentId}
+                title={c.documentId ? `Open ${c.documentName || `Source ${c.number}`}` : c.documentName || ''}
+              >
+                <span className="citation">[{c.number}]</span>
+                <span className="chat-msg__source-name">{c.documentName || `Source ${c.number}`}</span>
+              </button>
+            ))}
+          </div>
         )}
 
         <div className="chat-msg__footer">
