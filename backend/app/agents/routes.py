@@ -11,9 +11,12 @@ from app.agents.schemas import (
     AgentDefinitionCreate,
     AgentDefinitionResponse,
     AgentDefinitionUpdate,
+    AgentRunApprove,
     AgentRunCreate,
+    AgentRunReject,
     AgentRunResponse,
 )
+from app.agents.service import apply_approval, apply_rejection
 from app.auth.dependencies import get_current_user
 from app.database.connection import get_session
 
@@ -149,3 +152,51 @@ async def list_runs(
 async def get_run(run_id: int, current=Depends(get_current_user), session: AsyncSession = Depends(get_session)):
     """Fetch a single run's status + result."""
     return await _load_run(run_id, current["id"], session)
+
+
+def _require_waiting(run: AgentRun) -> None:
+    if run.status != AgentStatus.waiting_approval.value:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Run is not awaiting approval (status={run.status})",
+        )
+
+
+@router.post("/runs/{run_id}/approve", response_model=AgentRunResponse, status_code=status.HTTP_202_ACCEPTED)
+async def approve_run(
+    run_id: int,
+    background: BackgroundTasks,
+    body: AgentRunApprove | None = None,
+    current=Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """Approve a paused run's proposed action and resume it.
+
+    Executes the pending tool call(s) (optionally patched with `edited_input`),
+    appends the results to the run, and reschedules the loop to continue to a
+    final answer. 409 if the run is not awaiting approval.
+    """
+    run = await _load_run(run_id, current["id"], session)
+    _require_waiting(run)
+    definition = await session.get(AgentDefinition, run.definition_id)
+    if definition is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent definition not found")
+
+    run = await apply_approval(
+        session, run=run, definition=definition, edited_input=(body.edited_input if body else None)
+    )
+    background.add_task(run_agent, run.id)
+    return run
+
+
+@router.post("/runs/{run_id}/reject", response_model=AgentRunResponse)
+async def reject_run(
+    run_id: int,
+    body: AgentRunReject | None = None,
+    current=Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """Reject a paused run's proposed action. The run ends without executing it."""
+    run = await _load_run(run_id, current["id"], session)
+    _require_waiting(run)
+    return await apply_rejection(session, run=run, reason=(body.reason if body else None))

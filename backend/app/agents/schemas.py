@@ -53,6 +53,8 @@ class AgentRunResponse(BaseModel):
     trigger_input: str | None
     result_md: str | None
     error: dict | None
+    # The proposed action awaiting approval when status == waiting_approval.
+    pending_action: dict | None
     started_at: datetime | None
     completed_at: datetime | None
     created_at: datetime
@@ -68,6 +70,16 @@ class AgentRunCreate(BaseModel):
     trigger_input: str | None = None
     project_id: int | None = None
     chat_id: int | None = None
+
+
+class AgentRunApprove(BaseModel):
+    """Approve a paused run's proposed action, optionally patching its input."""
+
+    edited_input: dict | None = None
+
+
+class AgentRunReject(BaseModel):
+    reason: str | None = None
 
 
 # --- Run-step primitives --------------------------------------------------
