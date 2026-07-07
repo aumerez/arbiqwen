@@ -107,6 +107,16 @@ _TOOLS: dict[str, tuple[ToolFn, dict]] = {
 }
 
 
+# Tools that mutate external systems — these pause the run at a human-in-the-loop
+# checkpoint before executing. Read-only tools run without approval.
+_APPROVAL_REQUIRED = {"plane_create_task"}
+
+
+def requires_approval(tool_name: str) -> bool:
+    """Whether calling this tool must pause for human approval first."""
+    return tool_name in _APPROVAL_REQUIRED
+
+
 def build_registry(allowed_tools: list[str]) -> tuple[ToolRegistry, list[dict]]:
     """Return (registry, tool_definitions) for the whitelisted tools.
 

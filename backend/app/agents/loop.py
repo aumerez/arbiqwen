@@ -35,7 +35,7 @@ from app.agents.models import AgentDefinition, AgentRun, AgentStatus
 from app.agents.runner import ToolNotAllowed, run_step
 from app.agents.schemas import RunStepMessage, RunStepRequest
 from app.agents.service import transition_status
-from app.agents.tools import build_registry
+from app.agents.tools import build_registry, requires_approval
 from app.database.connection import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
@@ -95,12 +95,21 @@ async def run_agent(run_id: int) -> None:
             registry, tool_definitions = await _build_tool_registry(definition)
             tool_names = [t["name"] for t in tool_definitions]
 
-            messages: list[RunStepMessage] = [
-                RunStepMessage(role="system", content=AGENT_SYSTEM_PROMPT),
-                RunStepMessage(role="user", content=definition.prompt_template),
-            ]
-            if run.trigger_input:
-                messages.append(RunStepMessage(role="user", content=f"Input:\n{run.trigger_input}"))
+            if run.messages:
+                # Resuming after an approval checkpoint — the approve/reject step
+                # appended the tool_results, so continue from the saved
+                # conversation rather than reseeding.
+                messages = _load_messages(run.messages)
+                run.messages = None
+                run.pending_action = None
+                await session.commit()
+            else:
+                messages = [
+                    RunStepMessage(role="system", content=AGENT_SYSTEM_PROMPT),
+                    RunStepMessage(role="user", content=definition.prompt_template),
+                ]
+                if run.trigger_input:
+                    messages.append(RunStepMessage(role="user", content=f"Input:\n{run.trigger_input}"))
 
             seen_tool_calls: dict[str, str] = {}
             final_text: str | None = None
@@ -159,6 +168,14 @@ async def run_agent(run_id: int) -> None:
                         # emitted tool_use. Can't progress — break and salvage.
                         logger.warning("run_agent: %s emitted tool_use after no-tools forced", label)
                         break
+                    # Human-in-the-loop: if any proposed call mutates external
+                    # state, pause the whole round for approval before executing
+                    # anything. The assistant tool_use message is already in
+                    # `messages`; approve/reject supplies the tool_results.
+                    if any(requires_approval(tc.name) for tc in result.tool_calls):
+                        await _pause_for_approval(session, run, messages, result.tool_calls)
+                        logger.info("run_agent: %s paused for approval (round %d)", label, round_idx)
+                        return
                     dispatched, all_deduped = await dispatch_tool_calls(
                         registry,
                         tool_calls=result.tool_calls,
@@ -193,6 +210,36 @@ async def run_agent(run_id: int) -> None:
 
 
 # --- helpers --------------------------------------------------------------
+
+
+def _dump_messages(messages: list[RunStepMessage]) -> list[dict]:
+    """Serialize the conversation for persistence across an approval pause."""
+    return [m.model_dump() for m in messages]
+
+
+def _load_messages(data: list[dict]) -> list[RunStepMessage]:
+    """Rebuild the conversation saved by `_dump_messages`."""
+    return [RunStepMessage(**d) for d in data]
+
+
+async def _pause_for_approval(
+    session: AsyncSession, run: AgentRun, messages: list[RunStepMessage], tool_calls: list
+) -> None:
+    """Persist the proposed action + conversation and park the run at the
+    checkpoint. approve/reject executes the calls and resumes the loop."""
+    run.pending_action = {
+        "calls": [
+            {
+                "id": tc.id,
+                "name": tc.name,
+                "arguments": tc.arguments,
+                "requires_approval": requires_approval(tc.name),
+            }
+            for tc in tool_calls
+        ]
+    }
+    run.messages = _dump_messages(messages)
+    await transition_status(session, run=run, new_status=AgentStatus.waiting_approval)
 
 
 async def _load(session: AsyncSession, run_id: int) -> AgentRun | None:

@@ -144,14 +144,12 @@ class FakeProvider:
 
 
 @pytest.mark.asyncio
-async def test_loop_calls_plane_tool_end_to_end(monkeypatch, session_factory, db, plane_env):
+async def test_loop_pauses_before_writing_to_plane(monkeypatch, session_factory, db, plane_env):
+    # plane_create_task is a write → the loop pauses for approval BEFORE hitting
+    # Plane. (Execution-on-approve is covered in test_agent_checkpoint.)
     monkeypatch.setattr(loop_mod, "AsyncSessionLocal", session_factory)
-    # Round 1: model calls the tool. Round 2: model writes the final answer.
     provider = FakeProvider(
-        [
-            [{"type": "tool_use", "id": "c1", "name": "plane_create_task", "input": {"name": "Call Acme"}}],
-            [{"type": "text", "text": "Created task OPS-42 for Acme."}, {"type": "end_turn"}],
-        ]
+        [[{"type": "tool_use", "id": "c1", "name": "plane_create_task", "input": {"name": "Call Acme"}}]]
     )
     monkeypatch.setattr(runner_mod, "get_llm_provider", lambda: provider)
 
@@ -173,10 +171,10 @@ async def test_loop_calls_plane_tool_end_to_end(monkeypatch, session_factory, db
     await run_agent(run.id)
 
     await db.refresh(run)
-    assert run.status == AgentStatus.done.value
-    assert "OPS-42" in run.result_md
-    # The tool actually hit the (faked) Plane client.
-    assert FakeClient.calls["post"]["json"]["name"] == "Call Acme"
+    assert run.status == AgentStatus.waiting_approval.value
+    assert run.pending_action["calls"][0]["arguments"]["name"] == "Call Acme"
+    # Plane was NOT called — the write waits for approval.
+    assert "post" not in FakeClient.calls
 
 
 @pytest.mark.asyncio
