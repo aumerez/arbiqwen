@@ -40,6 +40,7 @@ function mapHistory(rows: RawMessage[]): ChatMessageView[] {
     content: row.content ?? '',
     citations: Array.isArray(row.citations) ? (row.citations as ChatCitation[]) : undefined,
     toolCalls: Array.isArray(row.tool_calls) ? (row.tool_calls as ChatToolCall[]) : undefined,
+    createdAt: row.created_at,
   }));
 }
 
@@ -124,9 +125,14 @@ export function useConversations(client: ChatClient, projectId: number | null): 
       setError(null);
       setSending(true);
 
-      const userMsg: ChatMessageView = { localId: nextLocalId(), role: 'user', content: trimmed };
+      const nowIso = new Date().toISOString();
+      const userMsg: ChatMessageView = { localId: nextLocalId(), role: 'user', content: trimmed, createdAt: nowIso };
       const assistantId = nextLocalId();
-      setMessages((prev) => [...prev, userMsg, { localId: assistantId, role: 'assistant', content: '', streaming: true }]);
+      setMessages((prev) => [
+        ...prev,
+        userMsg,
+        { localId: assistantId, role: 'assistant', content: '', streaming: true, createdAt: nowIso },
+      ]);
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -163,6 +169,34 @@ export function useConversations(client: ChatClient, projectId: number | null): 
                   toolCalls: (m.toolCalls ?? []).map((tc) =>
                     tc.id && tc.id === chunk.tool_use_id ? { ...tc, result: toToolResult(chunk) } : tc,
                   ),
+                }));
+                break;
+              case 'thinking_start':
+                patch(assistantId, (m) => ({
+                  ...m,
+                  thinking: { content: m.thinking?.content ?? '', streaming: true, durationMs: 0 },
+                }));
+                break;
+              case 'thinking_delta':
+                if (typeof chunk.text === 'string') {
+                  patch(assistantId, (m) => ({
+                    ...m,
+                    thinking: {
+                      content: (m.thinking?.content ?? '') + chunk.text,
+                      streaming: true,
+                      durationMs: m.thinking?.durationMs ?? 0,
+                    },
+                  }));
+                }
+                break;
+              case 'thinking_end':
+                patch(assistantId, (m) => ({
+                  ...m,
+                  thinking: {
+                    content: m.thinking?.content ?? '',
+                    streaming: false,
+                    durationMs: typeof chunk.duration_ms === 'number' ? chunk.duration_ms : (m.thinking?.durationMs ?? 0),
+                  },
                 }));
                 break;
               case 'error':

@@ -51,44 +51,185 @@
   gap: 12px;
 }
 
-/* Messages */
+/* Messages — avatar + content rows (ported from desktop ChatMessage). */
 .chat-msg {
   display: flex;
+  gap: 10px;
+  max-width: 85%;
+  animation: chat-fadein 0.2s ease-in;
 }
 
 .chat-msg--user {
-  justify-content: flex-end;
+  align-self: flex-end;
+  flex-direction: row-reverse;
 }
 
 .chat-msg--assistant {
-  justify-content: flex-start;
+  align-self: flex-start;
+}
+
+@keyframes chat-fadein {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-msg__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.chat-msg--error .chat-msg__avatar {
+  background: var(--error-muted);
+}
+
+.chat-msg__erricon {
+  color: var(--error);
+}
+
+.chat-msg__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
 .chat-msg__bubble {
-  max-width: 760px;
   padding: 10px 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
+  font-size: 14px;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.chat-msg--assistant .chat-msg__bubble {
   background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 2px var(--radius-md) var(--radius-md) var(--radius-md);
 }
 
 .chat-msg--user .chat-msg__bubble {
-  background: var(--accent-muted);
-  border-color: transparent;
+  background: var(--accent);
+  color: var(--accent-text);
+  border-radius: var(--radius-md) var(--radius-md) 2px var(--radius-md);
 }
 
-.chat-msg__bubble--error {
+.chat-msg--error .chat-msg__bubble {
+  background: var(--error-muted);
   border-color: var(--error);
   color: var(--error);
 }
 
 .chat-msg__text {
   margin: 0;
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--text-primary);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.chat-msg__footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.chat-msg--user .chat-msg__footer {
+  justify-content: flex-end;
+}
+
+.chat-msg__time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.chat-msg__copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition), color var(--transition), background var(--transition);
+}
+
+.chat-msg__copy--visible {
+  opacity: 0.7;
+}
+
+.chat-msg:hover .chat-msg__copy {
+  opacity: 0.7;
+}
+
+.chat-msg__copy:hover {
+  opacity: 1;
+  color: var(--accent);
+  background: var(--bg-tertiary);
+}
+
+/* Collapsible reasoning panel (ported from desktop ThinkingPanel). */
+.thinking {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.thinking__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.thinking__chevron {
+  display: inline-flex;
+  transition: transform var(--transition);
+}
+
+.thinking__chevron--open {
+  transform: rotate(90deg);
+}
+
+.thinking__label {
+  font-weight: 500;
+}
+
+.thinking__duration {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.thinking__body {
+  padding: 8px 10px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
+  white-space: pre-wrap;
 }
 
 /* Markdown rendering for assistant turns */

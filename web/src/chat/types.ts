@@ -30,6 +30,12 @@ export interface ChatToolCall {
   result?: ChatToolResult;
 }
 
+export interface ChatThinking {
+  content: string;
+  streaming: boolean;
+  durationMs: number;
+}
+
 export interface ChatMessageView {
   /** Local, stable key for rendering — not the backend row id. */
   localId: string;
@@ -37,6 +43,9 @@ export interface ChatMessageView {
   content: string;
   citations?: ChatCitation[];
   toolCalls?: ChatToolCall[];
+  thinking?: ChatThinking;
+  /** ISO timestamp for the footer. */
+  createdAt?: string;
   /** True while the assistant message is still streaming. */
   streaming?: boolean;
   /** True when this message represents a safe error notice. */
