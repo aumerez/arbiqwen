@@ -12,8 +12,11 @@ import '@fontsource/ibm-plex-sans/700.css';
 import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/500.css';
 import '@fontsource/ibm-plex-mono/600.css';
+// Manrope is the logo-only typeface (brand wordmark).
+import '@fontsource/manrope/700.css';
 
 import './styles/theme.css';
+import './styles/brand.css';
 import './styles/shell.css';
 import './styles/pages.css';
 import './styles/dashboard.css';

@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Hexagon } from 'lucide-react';
+import { ArbiWordmark } from './brand/ArbiWordmark';
 import { login } from '../api/http/authClient';
 import { BrowserReadError } from '../api/http/httpClient';
 import { getApiBaseUrl, getDemoEmail } from '../config';
@@ -66,13 +66,8 @@ export function LoginScreen({ onSuccess }: { onSuccess: (token: string) => void 
     <div className="login">
       <div className="login__card">
         <div className="login__header">
-          <div className="login__brand">
-            <span className="login__mark">
-              <Hexagon size={18} strokeWidth={2} />
-            </span>
-            Arbi
-          </div>
-          <p className="login__subtitle">Operations intelligence, on demand</p>
+          <ArbiWordmark size={40} className="login__logo" />
+          <p className="login__subtitle">AI Work Station</p>
         </div>
 
         {error && (
@@ -143,11 +138,13 @@ export function LoginScreen({ onSuccess }: { onSuccess: (token: string) => void 
           <p className="login__foot-text">
             Don’t have an account?{' '}
             <a href="#" className="login__link" onClick={(event) => event.preventDefault()}>
-              Contact your admin
+              Contact your administrator
             </a>
           </p>
           <p className="login__foot-note">
-            Encrypted in transit. Your session is held in memory only and never stored.
+            Protected by encryption.
+            <br />
+            Your credentials are never stored locally.
           </p>
           <p className="login__version">
             <span className="login__env-pill">Demo</span>
