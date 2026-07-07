@@ -17,12 +17,32 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from app.agents._runtime import ToolRegistry
+from app.chat.retrieval import retrieve
 from app.integrations import plane_client
 from app.integrations.plane_client import PlaneError, PlaneNotConfigured
 
 logger = logging.getLogger(__name__)
 
 ToolFn = Callable[[dict], Awaitable[Any]]
+
+
+# --- RAG tool (read-only knowledge grounding) -----------------------------
+
+
+async def _rag_search(args: dict) -> dict:
+    query = (args.get("query") or "").strip()
+    if not query:
+        return {"error": "query is required"}
+    top_k = args.get("top_k") or 5
+    try:
+        top_k = max(1, min(int(top_k), 20))
+    except (TypeError, ValueError):
+        top_k = 5
+    chunks = await retrieve(query, top_k=top_k)
+    return {
+        "count": len(chunks),
+        "results": [{"text": c.text, "score": round(c.score, 4), "document_id": c.document_id} for c in chunks],
+    }
 
 
 # --- Plane tools ----------------------------------------------------------
@@ -64,6 +84,24 @@ async def _plane_list_tasks(args: dict) -> dict:
 
 # name -> (callable, Anthropic-native tool schema)
 _TOOLS: dict[str, tuple[ToolFn, dict]] = {
+    "rag_search": (
+        _rag_search,
+        {
+            "name": "rag_search",
+            "description": (
+                "Search the workspace knowledge base (documents) for context relevant to a "
+                "query. Use to ground decisions in the company's own documents before acting."
+            ),
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "What to look up."},
+                    "top_k": {"type": "integer", "description": "Max results (1-20, default 5)."},
+                },
+                "required": ["query"],
+            },
+        },
+    ),
     "plane_create_task": (
         _plane_create_task,
         {
