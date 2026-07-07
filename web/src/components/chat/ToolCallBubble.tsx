@@ -76,6 +76,12 @@ export function ToolCallBubble({ tool }: { tool: ChatToolCall }) {
               <pre className="toolcall__code">{result.preview}</pre>
             </div>
           )}
+          {result?.rawPreview && (
+            <details className="toolcall__raw">
+              <summary className="toolcall__rawsummary">Raw response (JSON)</summary>
+              <pre className="toolcall__code">{result.rawPreview}</pre>
+            </details>
+          )}
         </div>
       )}
     </div>

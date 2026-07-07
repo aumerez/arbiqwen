@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { AlertTriangle, Check, Copy, User } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { NucleusMark } from '../brand/NucleusMark';
 import type { ChatMessageView, ThinkingBlock } from '../../chat/types';
@@ -19,8 +19,60 @@ function formatTime(iso?: string): string {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
+function CodeBlock({ code, language }: { code: string; language?: string }) {
+  const [copied, setCopied] = useState(false);
+  async function onCopy() {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // ignore
+    }
+  }
+  return (
+    <div className="codeblock">
+      <button
+        type="button"
+        className="codeblock__copy"
+        onClick={onCopy}
+        aria-label={copied ? 'Copied' : 'Copy code'}
+        title={copied ? 'Copied!' : 'Copy code'}
+      >
+        {copied ? <Check size={14} strokeWidth={2} /> : <Copy size={14} strokeWidth={2} />}
+      </button>
+      <pre className="codeblock__pre">
+        <code className={language ? `language-${language}` : undefined}>{code}</code>
+      </pre>
+    </div>
+  );
+}
+
 function Markdown({ text }: { text: string }) {
-  return <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>;
+  const components: Components = {
+    pre: ({ children }) => <>{children}</>,
+    code: ({ className, children }) => {
+      const codeText = String(children ?? '').replace(/\n$/, '');
+      const language = className?.match(/language-(\w+)/)?.[1];
+      const isBlock = !!language || codeText.includes('\n');
+      return isBlock ? <CodeBlock code={codeText} language={language} /> : <code className="md-inline">{children}</code>;
+    },
+    table: ({ children }) => (
+      <div className="md-table">
+        <table>{children}</table>
+      </div>
+    ),
+    a: ({ href, children }) => (
+      <a href={href} target="_blank" rel="noopener noreferrer">
+        {children}
+      </a>
+    ),
+  };
+  return (
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+      {text}
+    </ReactMarkdown>
+  );
 }
 
 interface ChatMessageBubbleProps {
@@ -121,7 +173,7 @@ export function ChatMessageBubble({ message, isLastAssistant = false }: ChatMess
               title={copied ? 'Copied!' : 'Copy message'}
               aria-label="Copy message"
             >
-              {copied ? <Check size={15} strokeWidth={2} /> : <Copy size={15} strokeWidth={2} />}
+              {copied ? <Check size={16} strokeWidth={2} /> : <Copy size={16} strokeWidth={2} />}
             </button>
           )}
         </div>
