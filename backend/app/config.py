@@ -103,6 +103,17 @@ class Settings(BaseSettings):
     )
     DASHSCOPE_MODEL: str = Field("qwen3.7-plus", description="Default Qwen model, e.g. qwen3.7-plus or qwen3.7-max")
 
+    # Plane — agent tool integration (self-hosted project management, API-key auth).
+    PLANE_BASE_URL: str | None = Field(None, description="Plane host, e.g. https://plane.example.com")
+    PLANE_API_KEY: str | None = Field(None, description="Plane API key (X-API-Key header)")
+    PLANE_WORKSPACE_SLUG: str | None = Field(None, description="Plane workspace slug")
+    PLANE_PROJECT_ID: str | None = Field(None, description="Default Plane project UUID for created tasks")
+
+    @property
+    def plane_configured(self) -> bool:
+        """Whether the Plane tools have the config they need to make live calls."""
+        return bool(self.PLANE_BASE_URL and self.PLANE_API_KEY and self.PLANE_WORKSPACE_SLUG)
+
     @property
     def llm_configured(self) -> bool:
         """Whether the active LLM provider has the credentials it needs."""
