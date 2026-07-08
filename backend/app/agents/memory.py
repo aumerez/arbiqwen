@@ -27,6 +27,8 @@ _MEMORY_COLLECTION = "agent_memories"
 
 
 def _is_configured() -> bool:
+    if settings.EMBEDDING_PROVIDER == "dashscope":
+        return bool(settings.DASHSCOPE_API_KEY)
     return bool(settings.OPENAI_API_KEY)
 
 

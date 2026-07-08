@@ -124,10 +124,11 @@ class Settings(BaseSettings):
         return False
 
     # Embeddings
-    EMBEDDING_PROVIDER: str = Field("openai", description="Active embedding provider key")
+    EMBEDDING_PROVIDER: str = Field("openai", description="Active embedding provider key: openai | dashscope")
     OPENAI_API_KEY: str | None = Field(None, description="OpenAI API key (required for live embedding calls)")
     OPENAI_BASE_URL: str | None = Field(None, description="Override the OpenAI API base URL")
     OPENAI_EMBEDDING_MODEL: str = Field("text-embedding-3-small", description="OpenAI embedding model (1536-dim)")
+    DASHSCOPE_EMBEDDING_MODEL: str = Field("text-embedding-v3", description="DashScope embedding model (1024-dim)")
 
     # Reranker (cross-encoder over retrieval results)
     ENABLE_RERANKER: bool = Field(True, description="Enable cross-encoder reranking in the RAG pipeline")
@@ -142,7 +143,7 @@ class Settings(BaseSettings):
     QDRANT_URL: str = Field("http://localhost:6333", description="Qdrant HTTP URL")
     QDRANT_API_KEY: str | None = Field(None, description="Qdrant API key (empty for local instances)")
     QDRANT_COLLECTION: str = Field("documents", description="Default collection name")
-    QDRANT_VECTOR_SIZE: int = Field(1536, description="Embedding dimension for the default collection")
+    QDRANT_VECTOR_SIZE: int = Field(1024, description="Embedding dimension (1024 for text-embedding-v3, 1536 for OpenAI)")
 
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent.parent / ".env",
