@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Database, FolderKanban, Plug, Zap } from 'lucide-react';
+import { Database, FileText, FolderKanban, Plug, Zap } from 'lucide-react';
 import { AppShell } from './AppShell';
 import { Sidebar, type NavItem } from './Sidebar';
 import { Section } from './Section';
@@ -10,6 +10,7 @@ import { LoadingState, ErrorState } from './DataStates';
 import { ChatView } from './chat/ChatView';
 import { ProjectsView } from './ProjectsView';
 import { ProjectDashboard } from './ProjectDashboard';
+import { DocumentsView } from './DocumentsView';
 import { ArtifactPanel, ArtifactPanelProvider } from './chat/ArtifactPanel';
 import { createArtifactsClient } from '../api/http/artifactsClient';
 import { createDocumentsClient } from '../api/http/documentsClient';
@@ -22,6 +23,7 @@ import { getToken } from '../session';
 import { useSections } from '../useSections';
 import { useProjects } from '../projects/useProjects';
 import { useConversations } from '../chat/useConversations';
+import type { DocumentRow } from '../documents/documentMeta';
 
 // Signed-in surface: a desktop-style shell with a project-aware sidebar. The
 // Assistant (chat) is the primary view, scoped to the active project; Projects,
@@ -29,6 +31,7 @@ import { useConversations } from '../chat/useConversations';
 // Read-only beyond chat: nothing else connects, runs, or mutates.
 const NAV: NavItem[] = [
   { id: 'projects', label: 'Projects', icon: FolderKanban },
+  { id: 'documents', label: 'Documents', icon: FileText },
   { id: 'integrations', label: 'Integrations', icon: Plug },
   { id: 'skills', label: 'Skills', icon: Zap },
   { id: 'rag-sources', label: 'Knowledge Bases', icon: Database },
@@ -39,6 +42,7 @@ const SECTION_LABELS: Record<string, string> = {
   skills: 'Skills',
   'rag-sources': 'RAG Sources',
   projects: 'Projects',
+  documents: 'Documents',
 };
 
 export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
@@ -69,14 +73,14 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
     [convo],
   );
 
-  // Documents feed the My Space Documents widget (read-only).
-  const [documents, setDocuments] = useState<{ id?: number | string; filename?: string }[]>([]);
+  // Documents feed the My Space Documents widget and the Documents page (read-only).
+  const [documents, setDocuments] = useState<DocumentRow[]>([]);
   useEffect(() => {
     let cancelled = false;
     void adapter.documents
       .list()
       .then((docs) => {
-        if (!cancelled) setDocuments(docs as { id?: number | string; filename?: string }[]);
+        if (!cancelled) setDocuments(docs as DocumentRow[]);
       })
       .catch(() => {
         if (!cancelled) setDocuments([]);
@@ -95,6 +99,10 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
       : active === 'chat'
         ? (projects.currentProject?.name ?? 'Assistant')
         : SECTION_LABELS[active] ?? '';
+
+  // Sections backed by the read adapter's loading/error/ready state. Projects
+  // and Documents fetch on their own, so they're excluded here.
+  const isDataSection = active === 'integrations' || active === 'skills' || active === 'rag-sources';
 
   const sidebar = (
     <Sidebar
@@ -164,11 +172,13 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
         />
       )}
 
-      {active !== 'home' && active !== 'chat' && active !== 'projects' && state === 'loading' && <LoadingState />}
-      {active !== 'home' && active !== 'chat' && active !== 'projects' && state === 'error' && (
-        <ErrorState error={error} onRetry={reload} />
+      {active === 'documents' && (
+        <DocumentsView documents={documents} documentsClient={documentsClient} projects={otherProjects} />
       )}
-      {active !== 'home' && active !== 'chat' && active !== 'projects' && state === 'ready' && data && (
+
+      {isDataSection && state === 'loading' && <LoadingState />}
+      {isDataSection && state === 'error' && <ErrorState error={error} onRetry={reload} />}
+      {isDataSection && state === 'ready' && data && (
         <>
           {active === 'integrations' && (
             <Section
