@@ -105,3 +105,24 @@ class AgentRun(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
+
+
+class AgentMemory(Base):
+    """One memory record written at the end of a run.
+
+    The summary text is embedded and stored in Qdrant for semantic recall; the
+    row here is the relational anchor (run_id, tenant_id, qdrant_id pointer).
+    """
+
+    __tablename__ = "agent_memories"
+    __table_args__ = (Index("idx_agent_memories_tenant_created", "tenant_id", "created_at"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    tenant_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    run_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("agent_runs.id", ondelete="SET NULL"), nullable=True)
+    definition_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("agent_definitions.id", ondelete="SET NULL"), nullable=True
+    )
+    summary: Mapped[str] = mapped_column(Text, nullable=False)
+    qdrant_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

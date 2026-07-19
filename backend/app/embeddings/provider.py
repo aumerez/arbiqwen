@@ -72,8 +72,24 @@ class OpenAIEmbeddingProvider(EmbeddingProvider):
         return [item.embedding for item in response.data]
 
 
+class DashScopeEmbeddingProvider(OpenAIEmbeddingProvider):
+    """DashScope embeddings — OpenAI-compatible endpoint, Alibaba API key.
+
+    Uses text-embedding-v2 (1536-dim, same as OpenAI ada-002) so the Qdrant
+    collection size is compatible with either provider.
+    """
+
+    def __init__(self):
+        super().__init__(
+            api_key=settings.DASHSCOPE_API_KEY,
+            model=settings.DASHSCOPE_EMBEDDING_MODEL,
+            base_url=settings.DASHSCOPE_BASE_URL,
+        )
+
+
 _EMBEDDING_CLASSES: dict[str, type[EmbeddingProvider]] = {
     "openai": OpenAIEmbeddingProvider,
+    "dashscope": DashScopeEmbeddingProvider,
 }
 
 _embedding_provider: EmbeddingProvider | None = None
