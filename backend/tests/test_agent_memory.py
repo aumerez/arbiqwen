@@ -55,6 +55,7 @@ class _FakeSession:
 @pytest.mark.asyncio
 async def test_save_memory_skips_when_unconfigured(monkeypatch):
     monkeypatch.setattr(mem_mod.settings, "OPENAI_API_KEY", "")
+    monkeypatch.setattr(mem_mod.settings, "DASHSCOPE_API_KEY", "")
     session = _FakeSession()
     result = await save_memory(session, run=_make_run())
     assert result is None
@@ -136,6 +137,7 @@ async def test_save_memory_stores_row_with_qdrant_id(monkeypatch):
 @pytest.mark.asyncio
 async def test_recall_memories_returns_none_when_unconfigured(monkeypatch):
     monkeypatch.setattr(mem_mod.settings, "OPENAI_API_KEY", "")
+    monkeypatch.setattr(mem_mod.settings, "DASHSCOPE_API_KEY", "")
     result = await recall_memories(query="test", tenant_id=1)
     assert result is None
 

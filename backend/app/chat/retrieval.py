@@ -19,6 +19,12 @@ class RetrievedChunk:
     chunk_index: int | None
 
 
+def _embedding_configured() -> bool:
+    if settings.EMBEDDING_PROVIDER == "dashscope":
+        return bool(settings.DASHSCOPE_API_KEY)
+    return bool(settings.OPENAI_API_KEY)
+
+
 async def retrieve(query: str, top_k: int = 5) -> list[RetrievedChunk]:
     """Return the most relevant chunks for a query.
 
@@ -26,7 +32,7 @@ async def retrieve(query: str, top_k: int = 5) -> list[RetrievedChunk]:
     empty list so the chat still answers (without grounded context) instead of
     erroring.
     """
-    if not settings.OPENAI_API_KEY:
+    if not _embedding_configured():
         return []
 
     try:

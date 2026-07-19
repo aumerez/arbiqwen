@@ -1,5 +1,9 @@
 """API tests for chat CRUD and streaming fallback."""
 
+from unittest.mock import PropertyMock, patch
+
+from app.config import settings
+
 
 async def _new_chat(client, auth_headers, title="First"):
     return (await client.post("/chats", headers=auth_headers, json={"title": title})).json()
@@ -15,9 +19,10 @@ async def test_create_and_list(client, auth_headers):
 
 async def test_stream_fallback_and_persist(client, auth_headers):
     chat = await _new_chat(client, auth_headers)
-    r = await client.post(f"/chats/{chat['id']}/messages", headers=auth_headers, json={"message": "hi"})
+    with patch.object(type(settings), "llm_configured", new_callable=PropertyMock, return_value=False):
+        r = await client.post(f"/chats/{chat['id']}/messages", headers=auth_headers, json={"message": "hi"})
     assert r.status_code == 200
-    # No LLM key configured -> graceful fallback + done event.
+    # LLM unconfigured -> graceful fallback + done event.
     assert "not configured" in r.text
     assert '"type": "done"' in r.text
 
