@@ -724,6 +724,30 @@
   color: var(--text-primary);
 }
 
+/* Cited-text fallback for citations with no fetchable local document
+   (qdrant-sourced). Mirrors the desktop's "Source excerpt" block. */
+.artifact__excerpt {
+  padding: 16px;
+}
+
+.artifact__excerpt-label {
+  margin: 0 0 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.artifact__excerpt-quote {
+  margin: 0;
+  padding: 4px 0 4px 16px;
+  border-left: 3px solid var(--accent);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
 /* Streaming indicator — three dots that light up in sequence. */
 .chat__dots {
   display: flex;

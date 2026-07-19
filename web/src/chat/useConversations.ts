@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChatClient, RawMessage } from '../api/http/chatClient';
 import { BrowserReadError } from '../api/http/httpClient';
-import type { ChatCitation, ChatMessageView, ChatSummary, ChatToolCall, StreamChunk } from './types';
+import type { ArtifactView, ChatCitation, ChatMessageView, ChatSummary, ChatToolCall, StreamChunk } from './types';
 
 // Project-scoped conversation state: the chat list for the active project, the
 // selected conversation's messages, and the streaming send path. Switching the
@@ -37,13 +37,38 @@ function toToolResult(chunk: StreamChunk) {
   };
 }
 
+// Persisted artifacts come back snake-cased (content_type); normalize to the
+// ArtifactView shape so a dashboard/report card survives a chat reload — the
+// desktop maps these on history too. Without this, revisiting a conversation
+// dropped its artifact cards.
+function mapArtifacts(raw: unknown): ArtifactView[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const mapped = raw
+    .filter((a): a is Record<string, unknown> => !!a && typeof a === 'object')
+    .map((a) => ({
+      id: (a.id as number | string | undefined) ?? 0,
+      filename: typeof a.filename === 'string' ? a.filename : undefined,
+      title: typeof a.title === 'string' ? a.title : undefined,
+      contentType:
+        typeof a.content_type === 'string'
+          ? a.content_type
+          : typeof a.contentType === 'string'
+            ? a.contentType
+            : undefined,
+    }));
+  return mapped.length > 0 ? mapped : undefined;
+}
+
 function mapHistory(rows: RawMessage[]): ChatMessageView[] {
   return rows.map((row) => ({
     localId: nextLocalId(),
     role: row.role === 'assistant' ? 'assistant' : 'user',
-    content: row.content ?? '',
+    // Strip the persisted "[Tools used: …]" history marker from the visible
+    // body, matching the desktop's MessageContent.
+    content: (row.content ?? '').replace(/\n\n\[Tools used:.*\]$/, ''),
     citations: Array.isArray(row.citations) ? (row.citations as ChatCitation[]) : undefined,
     toolCalls: Array.isArray(row.tool_calls) ? (row.tool_calls as ChatToolCall[]) : undefined,
+    artifacts: mapArtifacts(row.artifacts),
     createdAt: row.created_at,
   }));
 }

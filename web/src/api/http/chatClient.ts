@@ -33,6 +33,7 @@ export interface RawMessage {
   content: string;
   citations?: unknown[] | null;
   tool_calls?: unknown[] | null;
+  artifacts?: unknown[] | null;
   created_at?: string;
 }
 
