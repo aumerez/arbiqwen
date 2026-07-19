@@ -104,7 +104,7 @@ export function AgentsWidget({ workspaceClient, projectId, isDefault, onUseTempl
         <span className="fullview__card-desc">{tpl.hook}</span>
         {tpl.requires && (
           <div className="fullview__card-foot">
-            <span className="wrow__tag">{tpl.requires}</span>
+            <span className="fullview__card-req">{tpl.requires}</span>
           </div>
         )}
       </button>

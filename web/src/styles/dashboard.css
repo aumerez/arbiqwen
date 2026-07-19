@@ -355,6 +355,23 @@
   margin-top: auto;
 }
 
+/* Requirement chip on a template card. Unlike the status tag (.wrow__tag,
+   single short word, nowrap) this label can be a phrase, so it wraps to a
+   second line instead of overflowing the card. */
+.fullview__card-req {
+  max-width: 100%;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .fullview__empty,
 .fullview__stub {
   font-size: 13px;
