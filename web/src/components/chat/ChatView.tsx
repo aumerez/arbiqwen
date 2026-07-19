@@ -12,9 +12,12 @@ interface ChatViewProps {
   error: string | null;
   onSend: (text: string) => void;
   onStop: () => void;
+  /** Optional composer seed (e.g. from an agent template). The nonce re-applies
+   *  the same text when it's picked again. */
+  draft?: { text: string; nonce: number };
 }
 
-export function ChatView({ messages, sending, error, onSend, onStop }: ChatViewProps) {
+export function ChatView({ messages, sending, error, onSend, onStop, draft }: ChatViewProps) {
   const endRef = useRef<HTMLDivElement>(null);
   let lastAssistantIndex = -1;
   messages.forEach((m, i) => {
@@ -58,7 +61,7 @@ export function ChatView({ messages, sending, error, onSend, onStop }: ChatViewP
         </p>
       )}
 
-      <ChatComposer sending={sending} onSend={onSend} onStop={onStop} />
+      <ChatComposer sending={sending} onSend={onSend} onStop={onStop} draft={draft} />
     </section>
   );
 }

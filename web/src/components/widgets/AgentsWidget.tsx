@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Bot } from 'lucide-react';
 import type { WorkspaceClient, RawAgent } from '../../api/http/workspaceClient';
+import { AGENT_TEMPLATES, FEATURED_TEMPLATE_COUNT, type AgentTemplate } from '../../agents/agentTemplates';
 import { Widget } from './Widget';
 
 // Ported from the desktop ActiveAgentsWidget (read-only subset). Agents are
 // created and edited through chat (the assistant invokes create_agent_task);
-// this widget lists them. The maximize button opens a full-page overlay split
-// into Active runs and History, plus a Marketplace stub. No create / delete /
-// edit-in-chat / templates (write + chat surfaces, out of scope for the demo).
+// this widget lists them. The maximize button opens a full-page overlay with the
+// Templates gallery (the desktop's hero section), Active runs, History, and a
+// Marketplace stub. Picking a template drafts a chat seeded with its prompt —
+// chat is the demo's one interactive surface. No delete / edit-in-chat (write
+// surfaces, out of scope for the demo).
 
 const ACTIVE = new Set(['queued', 'working']);
 
@@ -28,10 +31,14 @@ interface AgentsWidgetProps {
   workspaceClient: WorkspaceClient;
   projectId: number;
   isDefault: boolean;
+  /** Drafts a chat seeded with the template prompt (the user reviews + sends).
+   *  Absent → template cards render but stay inert. */
+  onUseTemplate?: (prompt: string) => void;
 }
 
-export function AgentsWidget({ workspaceClient, projectId, isDefault }: AgentsWidgetProps) {
+export function AgentsWidget({ workspaceClient, projectId, isDefault, onUseTemplate }: AgentsWidgetProps) {
   const [agents, setAgents] = useState<RawAgent[] | null>(null);
+  const [showAllTemplates, setShowAllTemplates] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,8 +84,50 @@ export function AgentsWidget({ workspaceClient, projectId, isDefault }: AgentsWi
     </div>
   );
 
+  const templateCard = (tpl: AgentTemplate) => {
+    const Icon = tpl.icon;
+    return (
+      <button
+        key={tpl.id}
+        type="button"
+        className="fullview__card"
+        onClick={() => onUseTemplate?.(tpl.prompt)}
+        disabled={!onUseTemplate}
+        title={onUseTemplate ? 'Draft a new chat with this prompt' : tpl.title}
+      >
+        <div className="fullview__card-head">
+          <span className="fullview__card-icon">
+            <Icon size={16} strokeWidth={1.5} />
+          </span>
+          <span className="fullview__card-title">{tpl.title}</span>
+        </div>
+        <span className="fullview__card-desc">{tpl.hook}</span>
+        {tpl.requires && (
+          <div className="fullview__card-foot">
+            <span className="wrow__tag">{tpl.requires}</span>
+          </div>
+        )}
+      </button>
+    );
+  };
+
+  const visibleTemplates = showAllTemplates ? AGENT_TEMPLATES : AGENT_TEMPLATES.slice(0, FEATURED_TEMPLATE_COUNT);
+  const hiddenTemplateCount = AGENT_TEMPLATES.length - FEATURED_TEMPLATE_COUNT;
+
   const renderFull = () => (
     <div className="fullview">
+      <section>
+        <h3 className="fullview__section-title">
+          Templates to get started<span className="fullview__lead">Click one to draft a chat — review, then send.</span>
+        </h3>
+        <div className="fullview__grid">{visibleTemplates.map(templateCard)}</div>
+        {hiddenTemplateCount > 0 && (
+          <button type="button" className="fullview__more" onClick={() => setShowAllTemplates((s) => !s)}>
+            {showAllTemplates ? 'Show less' : `Show ${hiddenTemplateCount} more`}
+          </button>
+        )}
+      </section>
+
       <section>
         <h3 className="fullview__section-title">
           Active runs<span className="fullview__lead">{active.length}</span>
