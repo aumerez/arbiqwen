@@ -941,3 +941,26 @@
   background: var(--chip-bg);
   color: var(--chip-fg);
 }
+
+/* ── Mobile: full-screen artifact panel, tighter chat gutters ──────── */
+@media (max-width: 768px) {
+  .chat__list {
+    padding: 0 16px 12px;
+  }
+
+  .chat-msg {
+    max-width: 100%;
+  }
+
+  .composer {
+    padding: 12px 14px 18px;
+  }
+
+  /* The side panel becomes a full-width sheet (still below the top bar and
+     above the status bar, so its controls and the hamburger stay reachable). */
+  .artifact {
+    width: 100vw;
+    max-width: 100vw;
+    left: 0;
+  }
+}

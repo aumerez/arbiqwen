@@ -436,3 +436,14 @@
   border: 1px solid currentColor;
   color: var(--text-muted);
 }
+
+/* ── Mobile: tighter gutters for section list views ────────────────── */
+@media (max-width: 768px) {
+  .page__header {
+    padding: 18px 16px 14px;
+  }
+
+  .card-list {
+    padding: 0 16px 24px;
+  }
+}

@@ -552,3 +552,32 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Mobile: tighter gutters, full-width widget overlay ────────────── */
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 20px 16px;
+  }
+
+  .dashboard__cover {
+    margin: -20px -16px 0;
+  }
+
+  /* The sidebar is an off-canvas drawer on mobile, so the overlay spans the
+     full width instead of starting at the (now-hidden) sidebar offset. */
+  .widget-overlay {
+    left: 0;
+  }
+
+  .widget-overlay__header {
+    padding: 12px 16px;
+  }
+
+  .widget-overlay__body {
+    padding: 16px;
+  }
+
+  .fullview__grid {
+    grid-template-columns: 1fr;
+  }
+}
