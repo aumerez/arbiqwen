@@ -898,9 +898,11 @@
 .composer__input {
   flex: 1;
   resize: none;
-  max-height: 160px;
-  min-height: 40px;
-  padding: 10px 4px 10px 14px;
+  /* Matches the desktop ChatInput: rests taller and grows (via JS auto-resize)
+     up to ~10 lines before scrolling. */
+  min-height: 48px;
+  max-height: 240px;
+  padding: 12px 4px 12px 14px;
   background: transparent;
   border: none;
   color: var(--text-primary);

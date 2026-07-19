@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Send, Square } from 'lucide-react';
 
 // Message composer, ported from the desktop ChatInput: a bordered field that
@@ -16,12 +16,23 @@ interface ChatComposerProps {
 
 export function ChatComposer({ sending, onSend, onStop, draft }: ChatComposerProps) {
   const [value, setValue] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Apply a seeded draft into the field. Keyed on the nonce, not the text, so
   // re-picking the same template still re-fills it.
   useEffect(() => {
     if (draft && draft.nonce > 0) setValue(draft.text);
   }, [draft?.nonce]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-resize like the desktop ChatInput: grow with content up to the CSS
+  // max-height (240px), then scroll. Runs after every value change, including
+  // the reset to '' on send and a seeded draft.
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = `${Math.min(ta.scrollHeight, 240)}px`;
+  }, [value]);
 
   function submit() {
     const text = value.trim();
@@ -46,6 +57,7 @@ export function ChatComposer({ sending, onSend, onStop, draft }: ChatComposerPro
     <form className="composer" onSubmit={handleSubmit} aria-label="Message composer">
       <div className="composer__field">
         <textarea
+          ref={textareaRef}
           className="composer__input"
           value={value}
           onChange={(event) => setValue(event.target.value)}
