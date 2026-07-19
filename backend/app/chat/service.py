@@ -1,4 +1,4 @@
-"""Chat service: conversation CRUD and RAG-grounded answer generation."""
+"""Chat service: conversation CRUD."""
 
 import logging
 from uuid import uuid4
@@ -7,9 +7,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.chat.models import Chat, ChatMessage, ChatRole
-from app.chat.retrieval import RetrievedChunk, retrieve
-from app.config import settings
-from app.llm import get_llm_provider
 
 logger = logging.getLogger(__name__)
 
@@ -18,13 +15,6 @@ SYSTEM_PROMPT = (
     "using the provided context when it is relevant, and say so when the context "
     "does not contain the answer."
 )
-
-
-def _build_prompt(question: str, chunks: list[RetrievedChunk]) -> str:
-    if not chunks:
-        return f"{SYSTEM_PROMPT}\n\nQuestion: {question}"
-    context = "\n\n".join(f"[{i + 1}] {c.text}" for i, c in enumerate(chunks))
-    return f"{SYSTEM_PROMPT}\n\nContext:\n{context}\n\nQuestion: {question}"
 
 
 class ChatService:
@@ -59,31 +49,3 @@ class ChatService:
         message = ChatMessage(chat_id=chat_id, msg_uuid=str(uuid4()), role=role, content=content, **fields)
         self.session.add(message)
         return message
-
-    async def answer(self, chat: Chat, user_text: str) -> ChatMessage:
-        """Persist the user turn, retrieve context, generate + persist the answer."""
-        await self.add_message(chat.id, ChatRole.user, user_text)
-
-        chunks = await retrieve(user_text)
-        prompt = _build_prompt(user_text, chunks)
-
-        if settings.llm_configured:
-            try:
-                answer_text = await get_llm_provider().generate(prompt)
-            except Exception as exc:  # noqa: BLE001 — surface a message rather than a 500
-                logger.warning("LLM generation failed (%s): %s", type(exc).__name__, exc)
-                answer_text = "I couldn't generate a response right now. Please try again."
-        else:
-            answer_text = "The language model is not configured on this server."
-
-        citations = [{"document_id": c.document_id, "chunk_index": c.chunk_index, "text": c.text[:200]} for c in chunks]
-        assistant = await self.add_message(
-            chat.id,
-            ChatRole.assistant,
-            answer_text,
-            citations=citations or None,
-            retrieved_chunk_ids=[c.chunk_index for c in chunks] or None,
-        )
-        await self.session.commit()
-        await self.session.refresh(assistant)
-        return assistant
