@@ -280,6 +280,36 @@
   background: var(--bg-elevated);
 }
 
+.fullview__card:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.fullview__card:disabled:hover {
+  border-color: var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
+/* "Show N more" toggle under the templates grid. */
+.fullview__more {
+  align-self: flex-start;
+  margin-top: 12px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.fullview__more:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .fullview__card-head {
   display: flex;
   align-items: center;

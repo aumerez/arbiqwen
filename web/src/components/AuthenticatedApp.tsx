@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Database, FolderKanban, Plug, Zap } from 'lucide-react';
 import { AppShell } from './AppShell';
 import { Sidebar, type NavItem } from './Sidebar';
@@ -55,6 +55,19 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
   const { state, data, error, reload } = useSections(adapter);
 
   const [active, setActive] = useState('home');
+
+  // Composer draft seeded by the agent template gallery. The nonce makes the
+  // same prompt re-applyable (pick a template, edit, pick it again). Drafting
+  // only — the user reviews and sends, so nothing is dispatched on click.
+  const [draft, setDraft] = useState<{ text: string; nonce: number }>({ text: '', nonce: 0 });
+  const useTemplate = useCallback(
+    (prompt: string) => {
+      convo.newChat();
+      setDraft((d) => ({ text: prompt, nonce: d.nonce + 1 }));
+      setActive('chat');
+    },
+    [convo],
+  );
 
   // Documents feed the My Space Documents widget (read-only).
   const [documents, setDocuments] = useState<{ id?: number | string; filename?: string }[]>([]);
@@ -125,6 +138,7 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
           adapter={adapter}
           projectsClient={projectsClient}
           workspaceClient={workspaceClient}
+          onUseTemplate={useTemplate}
         />
       )}
 
@@ -135,6 +149,7 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
           error={convo.error}
           onSend={convo.send}
           onStop={convo.stop}
+          draft={draft}
         />
       )}
 

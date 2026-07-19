@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Send, Square } from 'lucide-react';
 
 // Message composer, ported from the desktop ChatInput: a bordered field that
@@ -9,10 +9,19 @@ interface ChatComposerProps {
   sending: boolean;
   onSend: (text: string) => void;
   onStop: () => void;
+  /** A seeded draft (e.g. an agent template). Applied whenever its nonce
+   *  changes so the same template can be re-applied. */
+  draft?: { text: string; nonce: number };
 }
 
-export function ChatComposer({ sending, onSend, onStop }: ChatComposerProps) {
+export function ChatComposer({ sending, onSend, onStop, draft }: ChatComposerProps) {
   const [value, setValue] = useState('');
+
+  // Apply a seeded draft into the field. Keyed on the nonce, not the text, so
+  // re-picking the same template still re-fills it.
+  useEffect(() => {
+    if (draft && draft.nonce > 0) setValue(draft.text);
+  }, [draft?.nonce]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function submit() {
     const text = value.trim();

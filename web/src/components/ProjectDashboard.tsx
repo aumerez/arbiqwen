@@ -27,6 +27,7 @@ interface ProjectDashboardProps {
   adapter: ReadAdapter;
   projectsClient: ProjectsClient;
   workspaceClient: WorkspaceClient;
+  onUseTemplate?: (prompt: string) => void;
 }
 
 export function ProjectDashboard({
@@ -38,6 +39,7 @@ export function ProjectDashboard({
   adapter,
   projectsClient,
   workspaceClient,
+  onUseTemplate,
 }: ProjectDashboardProps) {
   const isDefault = project.isDefault;
   const HeaderIcon = projectIcon(project);
@@ -56,7 +58,14 @@ export function ProjectDashboard({
   const dashboards = (
     <DashboardsWidget workspaceClient={workspaceClient} projectId={projectId} isDefault={isDefault} />
   );
-  const agents = <AgentsWidget workspaceClient={workspaceClient} projectId={projectId} isDefault={isDefault} />;
+  const agents = (
+    <AgentsWidget
+      workspaceClient={workspaceClient}
+      projectId={projectId}
+      isDefault={isDefault}
+      onUseTemplate={onUseTemplate}
+    />
+  );
 
   return (
     <div className="dashboard">
