@@ -1,10 +1,11 @@
 import { useCallback } from 'react';
-import { BarChart3, BookOpen, Bot, Users } from 'lucide-react';
+import { BarChart3, BookOpen, Users } from 'lucide-react';
 import { Widget } from './widgets/Widget';
 import { ProjectsWidget } from './widgets/ProjectsWidget';
 import { DocumentsWidget, type DocLike } from './widgets/DocumentsWidget';
 import { InfoSourcesWidget } from './widgets/InfoSourcesWidget';
 import { DashboardsWidget } from './widgets/DashboardsWidget';
+import { AgentsWidget } from './widgets/AgentsWidget';
 import { ListWidget, type ListRow } from './widgets/ListWidget';
 import type { ProjectView } from '../projects/useProjects';
 import { projectIcon, projectGradient } from '../projects/projectVisual';
@@ -49,27 +50,13 @@ export function ProjectDashboard({
         .then((items) => items.map((p) => ({ id: String(p.id), label: p.name, status: p.status }))),
     [workspaceClient, projectId],
   );
-  const loadAgents = useCallback(
-    (): Promise<ListRow[]> =>
-      workspaceClient
-        .listAgents()
-        .then((items) =>
-          items
-            .filter((a) => a.project_id === projectId)
-            .map((a) => ({ id: String(a.id), label: a.title, status: a.status })),
-        ),
-    [workspaceClient, projectId],
-  );
-
   const playbooks = (
     <ListWidget title="Playbooks" icon={BookOpen} rowIcon={BookOpen} emptyHint="No playbooks yet" loader={loadPlaybooks} />
   );
   const dashboards = (
     <DashboardsWidget workspaceClient={workspaceClient} projectId={projectId} isDefault={isDefault} />
   );
-  const agents = (
-    <ListWidget title="Active Agents" icon={Bot} rowIcon={Bot} emptyHint="No agents yet" loader={loadAgents} />
-  );
+  const agents = <AgentsWidget workspaceClient={workspaceClient} projectId={projectId} isDefault={isDefault} />;
 
   return (
     <div className="dashboard">

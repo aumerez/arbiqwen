@@ -26,7 +26,9 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("tenant_id", sa.Integer(), nullable=False, index=True),
         sa.Column("run_id", sa.Integer(), sa.ForeignKey("agent_runs.id", ondelete="SET NULL"), nullable=True),
-        sa.Column("definition_id", sa.Integer(), sa.ForeignKey("agent_definitions.id", ondelete="SET NULL"), nullable=True),
+        sa.Column(
+            "definition_id", sa.Integer(), sa.ForeignKey("agent_definitions.id", ondelete="SET NULL"), nullable=True
+        ),
         sa.Column("summary", sa.Text(), nullable=False),
         sa.Column("qdrant_id", sa.String(64), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),

@@ -88,8 +88,63 @@ export function DashboardsWidget({ workspaceClient, projectId, isDefault }: Dash
     });
   };
 
+  // Full-page overlay: a card grid of every dashboard (click → preview) plus a
+  // Marketplace stub, mirroring the desktop full view (read-only — no delete /
+  // edit-in-chat).
+  const renderFull = () => (
+    <div className="fullview">
+      <section>
+        <h3 className="fullview__section-title">
+          Your dashboards
+          {count > 0 && <span className="fullview__lead">{count} total</span>}
+        </h3>
+        {count === 0 ? (
+          <div className="fullview__empty">No dashboards yet — ask the assistant to draw one.</div>
+        ) : (
+          <div className="fullview__grid">
+            {(rows ?? []).map((d) => {
+              const label = d.short_name || d.title;
+              const meta = metaFor(d, isDefault);
+              const tag = d.template ? formatTemplate(d.template) : null;
+              const clickable = !!d.cached_artifact_id;
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  className={`fullview__card${clickable ? '' : ' fullview__card--static'}`}
+                  onClick={() => open(d)}
+                  disabled={!clickable}
+                  title={clickable ? `Preview ${d.title}` : d.title}
+                >
+                  <div className="fullview__card-head">
+                    <span className="fullview__card-icon">
+                      <LayoutDashboard size={16} strokeWidth={1.5} />
+                    </span>
+                    <span className="fullview__card-title">{label}</span>
+                  </div>
+                  {d.description && <span className="fullview__card-desc">{d.description}</span>}
+                  <span className="fullview__card-meta">{meta}</span>
+                  {tag && (
+                    <div className="fullview__card-foot">
+                      <span className="wrow__tag">{tag}</span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h3 className="fullview__section-title">Marketplace</h3>
+        <div className="fullview__stub">Shared dashboards aren't part of this demo yet.</div>
+      </section>
+    </div>
+  );
+
   return (
-    <Widget title="Dashboards" icon={LayoutDashboard} count={count} hint={hint}>
+    <Widget title="Dashboards" icon={LayoutDashboard} count={count} hint={hint} expandable renderFull={renderFull}>
       {visible.length > 0 && (
         <div className="wlist">
           {visible.map((d) => {
