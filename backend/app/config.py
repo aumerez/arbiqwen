@@ -143,7 +143,9 @@ class Settings(BaseSettings):
     QDRANT_URL: str = Field("http://localhost:6333", description="Qdrant HTTP URL")
     QDRANT_API_KEY: str | None = Field(None, description="Qdrant API key (empty for local instances)")
     QDRANT_COLLECTION: str = Field("documents", description="Default collection name")
-    QDRANT_VECTOR_SIZE: int = Field(1024, description="Embedding dimension (1024 for text-embedding-v3, 1536 for OpenAI)")
+    QDRANT_VECTOR_SIZE: int = Field(
+        1024, description="Embedding dimension (1024 for text-embedding-v3, 1536 for OpenAI)"
+    )
 
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent.parent / ".env",
