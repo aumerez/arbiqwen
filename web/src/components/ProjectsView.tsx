@@ -1,5 +1,5 @@
-import { FolderOpen, Sparkles } from 'lucide-react';
 import type { ProjectView } from '../projects/useProjects';
+import { projectIcon } from '../projects/projectVisual';
 
 // "My Space / Projects" view — a grid of the workspace's projects. Selecting one
 // makes it the active project and returns to the conversation view. Read-only:
@@ -25,7 +25,7 @@ export function ProjectsView({ projects, currentId, onSelect }: ProjectsViewProp
       ) : (
         <ul className="card-list">
           {projects.map((project) => {
-            const Icon = project.isDefault ? Sparkles : FolderOpen;
+            const Icon = projectIcon(project);
             const active = project.id === currentId;
             return (
               <li key={project.id} className="card card--project" data-card="project">

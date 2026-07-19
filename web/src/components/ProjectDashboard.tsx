@@ -1,11 +1,13 @@
 import { useCallback } from 'react';
-import { BarChart3, BookOpen, Bot, FolderOpen, LayoutDashboard, Sparkles, Users } from 'lucide-react';
+import { BarChart3, BookOpen, Bot, Users } from 'lucide-react';
 import { Widget } from './widgets/Widget';
 import { ProjectsWidget } from './widgets/ProjectsWidget';
 import { DocumentsWidget, type DocLike } from './widgets/DocumentsWidget';
 import { InfoSourcesWidget } from './widgets/InfoSourcesWidget';
+import { DashboardsWidget } from './widgets/DashboardsWidget';
 import { ListWidget, type ListRow } from './widgets/ListWidget';
 import type { ProjectView } from '../projects/useProjects';
+import { projectIcon, projectGradient } from '../projects/projectVisual';
 import type { ReadAdapter } from '../api/http/readAdapter';
 import type { ProjectsClient } from '../api/http/projectsClient';
 import type { WorkspaceClient } from '../api/http/workspaceClient';
@@ -14,6 +16,7 @@ import type { WorkspaceClient } from '../api/http/workspaceClient';
 // project; project layout (with Information Sources + integration/RAG toggles)
 // for the rest. Playbooks, Dashboards, and Active Agents load real data scoped
 // to the active project; KPIs stay an empty placeholder (no browser endpoint).
+// The header icon badge + non-default banner tint come from projectVisual.
 interface ProjectDashboardProps {
   project: ProjectView;
   subtitle: string;
@@ -36,7 +39,7 @@ export function ProjectDashboard({
   workspaceClient,
 }: ProjectDashboardProps) {
   const isDefault = project.isDefault;
-  const HeaderIcon = isDefault ? Sparkles : FolderOpen;
+  const HeaderIcon = projectIcon(project);
   const projectId = project.id;
 
   const loadPlaybooks = useCallback(
@@ -44,11 +47,6 @@ export function ProjectDashboard({
       workspaceClient
         .listPlaybooks(projectId)
         .then((items) => items.map((p) => ({ id: String(p.id), label: p.name, status: p.status }))),
-    [workspaceClient, projectId],
-  );
-  const loadDashboards = useCallback(
-    (): Promise<ListRow[]> =>
-      workspaceClient.listDashboards(projectId).then((items) => items.map((d) => ({ id: String(d.id), label: d.title }))),
     [workspaceClient, projectId],
   );
   const loadAgents = useCallback(
@@ -67,13 +65,7 @@ export function ProjectDashboard({
     <ListWidget title="Playbooks" icon={BookOpen} rowIcon={BookOpen} emptyHint="No playbooks yet" loader={loadPlaybooks} />
   );
   const dashboards = (
-    <ListWidget
-      title="Dashboards"
-      icon={LayoutDashboard}
-      rowIcon={LayoutDashboard}
-      emptyHint="No dashboards yet"
-      loader={loadDashboards}
-    />
+    <DashboardsWidget workspaceClient={workspaceClient} projectId={projectId} isDefault={isDefault} />
   );
   const agents = (
     <ListWidget title="Active Agents" icon={Bot} rowIcon={Bot} emptyHint="No agents yet" loader={loadAgents} />
@@ -81,7 +73,11 @@ export function ProjectDashboard({
 
   return (
     <div className="dashboard">
-      <div className="dashboard__cover" aria-hidden="true" />
+      <div
+        className="dashboard__cover"
+        aria-hidden="true"
+        style={isDefault ? undefined : { background: projectGradient(project.name) }}
+      />
 
       <div className="dashboard__header">
         <span className="dashboard__avatar">
