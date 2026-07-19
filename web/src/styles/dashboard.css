@@ -133,6 +133,205 @@
   flex-direction: column;
 }
 
+.widget__actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* When a hint is present it already claims margin-left:auto; let the actions
+   sit right after it instead of fighting for the same auto gap. */
+.widget__hint + .widget__actions {
+  margin-left: 8px;
+}
+
+.widget__expand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.widget__expand:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* ── Full-page widget overlay (maximize) ───────────────────────────── */
+.widget-overlay {
+  position: fixed;
+  top: var(--topbar-height);
+  bottom: var(--statusbar-height);
+  left: var(--sidebar-width);
+  right: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+}
+
+.widget-overlay__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.widget-overlay__close {
+  margin-left: auto;
+}
+
+.widget-overlay__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px;
+}
+
+/* ── Shared full-view layout (Projects / Dashboards / Agents) ───────── */
+.fullview {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.fullview__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+}
+
+.fullview__search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  outline: none;
+}
+
+.fullview__section-title {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+
+.fullview__lead {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-muted);
+}
+
+.fullview__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.fullview__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  text-align: left;
+  width: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.fullview__card:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.fullview__card--static {
+  cursor: default;
+}
+
+.fullview__card--static:hover {
+  border-color: var(--border-subtle);
+  background: var(--bg-elevated);
+}
+
+.fullview__card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fullview__card-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  background: var(--chip-bg);
+  color: var(--chip-fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fullview__card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.fullview__card-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.fullview__card-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.fullview__card-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.fullview__empty,
+.fullview__stub {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 12px 0;
+}
+
 /* Compact list rows (projects, documents) */
 .wlist {
   background: var(--bg-elevated);
