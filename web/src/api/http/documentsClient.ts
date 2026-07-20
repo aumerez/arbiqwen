@@ -5,6 +5,13 @@
 import { BrowserReadError } from './httpClient';
 import type { DocumentRow } from '../../documents/documentMeta';
 
+// Maximum size of a chat attachment, enforced client-side. Oversized files are
+// rejected before any network request is issued — the single source of truth
+// shared by the composer (for the user-facing chip) and the upload client (as a
+// defense-in-depth guard).
+export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // 25 MB
+export const MAX_UPLOAD_MB = Math.round(MAX_UPLOAD_BYTES / (1024 * 1024));
+
 export interface DocumentFile {
   contentType: string;
   text?: string;
@@ -99,6 +106,11 @@ export function createDocumentsClient(config: DocumentsClientConfig = {}): Docum
       // browser sends the real File bytes (the desktop sends a filesystem path);
       // both hit POST /documents/upload with an optional project_id form field.
       // The chat attachment flow is the one write the read-only demo permits.
+      // Reject oversized files before opening the request, so a large file never
+      // touches the network.
+      if (file.size > MAX_UPLOAD_BYTES) {
+        throw new BrowserReadError('too_large', `File exceeds the ${MAX_UPLOAD_MB} MB limit`);
+      }
       const headers: Record<string, string> = {};
       const token = config.getToken?.();
       if (token) headers.Authorization = `Bearer ${token}`;
