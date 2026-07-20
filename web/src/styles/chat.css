@@ -880,39 +880,167 @@
   flex-shrink: 0;
 }
 
-.composer__field {
+/* Claude-style input box (desktop ChatInput): chip strip on top, textarea in
+   the middle, controls bar at the bottom — all inside one rounded border with a
+   focus-within highlight. */
+.composer__box {
   display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  padding: 4px 4px 4px 0;
+  flex-direction: column;
+  width: 100%;
   background: var(--bg-elevated);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   transition: border-color var(--transition);
 }
 
-.composer__field:focus-within {
+.composer__box:focus-within {
   border-color: var(--accent);
 }
 
+.composer__box--has-chips .composer__input {
+  min-height: 64px;
+}
+
+.composer__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px 0;
+}
+
+.composer__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--text-primary);
+  max-width: 280px;
+}
+
+.composer__chip--error {
+  border-color: var(--error);
+}
+
+.composer__chip-icon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.composer__chip-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.composer__chip-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  max-width: 200px;
+}
+
+.composer__chip-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.composer__chip-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.composer__chip-remove:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.composer__spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .composer__input {
-  flex: 1;
+  width: 100%;
   resize: none;
   /* Matches the desktop ChatInput: rests taller and grows (via JS auto-resize)
      up to ~10 lines before scrolling. */
   min-height: 48px;
   max-height: 240px;
-  padding: 12px 4px 12px 14px;
+  padding: 12px 14px 4px;
   background: transparent;
   border: none;
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.5;
+  overflow-y: auto;
 }
 
 .composer__input:focus {
   outline: none;
+}
+
+.composer__input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Controls bar at the bottom of the box — paperclip left, send right. */
+.composer__controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px 8px;
+}
+
+.composer__file-input {
+  display: none;
+}
+
+.composer__attach {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color var(--transition), background var(--transition);
+}
+
+.composer__attach:hover {
+  color: var(--accent);
+  background: var(--bg-secondary);
+}
+
+.composer__spacer {
+  flex: 1;
 }
 
 .composer__btn {
