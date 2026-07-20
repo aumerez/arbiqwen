@@ -3,8 +3,13 @@
 .shell {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  width: 100vw;
+  /* Fill #root (already 100% of the viewport) rather than 100vw/100vh: 100vw
+     includes the vertical-scrollbar width, so once any view scrolls vertically
+     the shell overflows horizontally by the scrollbar width and the right edge
+     (top-bar logout, right-column widgets) gets clipped. 100% sidesteps that. */
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
   background: var(--bg-primary);
 }
 
@@ -73,6 +78,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
   color: #f1f5f9;
   font-weight: 600;
 }
@@ -92,14 +98,19 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
 }
 
 .topbar__crumb-sep {
   color: rgba(245, 243, 238, 0.15);
+  flex-shrink: 0;
 }
 
 .topbar__crumb-current {
   color: #cbd5e1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .topbar__spacer {
@@ -110,6 +121,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .topbar__tenant-logo {
@@ -134,6 +146,8 @@
 
 .topbar__logout {
   margin-left: 12px;
+  flex-shrink: 0;
+  white-space: nowrap;
   padding: 4px 10px;
   border: 1px solid rgba(245, 243, 238, 0.15);
   background: transparent;
