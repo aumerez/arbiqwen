@@ -1,0 +1,13 @@
+# Keep build contexts small and reproducible. node_modules/.venv are rebuilt
+# inside the images; never copy the host's.
+**/node_modules
+**/dist
+**/.venv
+**/__pycache__
+**/.git
+**/.pytest_cache
+**/*.pyc
+web/.env
+backend/.env
+deploy/.env
+.planning
