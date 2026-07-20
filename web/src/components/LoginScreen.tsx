@@ -43,7 +43,7 @@ function GoogleIcon() {
   );
 }
 
-export function LoginScreen({ onSuccess }: { onSuccess: (token: string) => void }) {
+export function LoginScreen({ onSuccess }: { onSuccess: (token: string, email: string) => void }) {
   const [email, setEmail] = useState(getDemoEmail());
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +55,7 @@ export function LoginScreen({ onSuccess }: { onSuccess: (token: string) => void 
     setBusy(true);
     try {
       const token = await login({ baseUrl: getApiBaseUrl(), email, password });
-      onSuccess(token);
+      onSuccess(token, email);
     } catch (err) {
       setError(messageFor(err));
       setBusy(false);
