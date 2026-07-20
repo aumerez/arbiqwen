@@ -5,7 +5,7 @@
 // no storage, no cookies, no module-level token. Errors are typed and never
 // echo backend response bodies, tokens, headers, or credentials.
 
-export type BrowserReadErrorKind = 'network' | 'http' | 'parse';
+export type BrowserReadErrorKind = 'network' | 'http' | 'parse' | 'too_large';
 
 export class BrowserReadError extends Error {
   readonly kind: BrowserReadErrorKind;
