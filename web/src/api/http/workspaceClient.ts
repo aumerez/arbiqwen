@@ -3,11 +3,34 @@
 
 import { HttpClient, type HttpClientConfig } from './httpClient';
 
+export interface RawPlaybookStep {
+  id?: string;
+  order?: number;
+  type?: string; // action | condition | notification | approval
+  name?: string;
+  description?: string;
+}
+
+export interface RawPlaybookRun {
+  status?: string; // running | completed | failed | cancelled
+  started_at?: string;
+  triggered_by?: string | null;
+  steps_completed?: number;
+  steps_total?: number;
+}
+
 export interface RawPlaybook {
   id: string | number;
   name: string;
-  status?: string;
+  status?: string; // draft | active | archived
   project_id?: number;
+  description?: string | null;
+  icon?: string | null;
+  trigger?: string; // manual | alert | schedule | webhook
+  steps?: RawPlaybookStep[] | null;
+  scope?: string; // user | group | company
+  tags?: string[] | null;
+  last_run?: RawPlaybookRun | null;
 }
 
 export interface RawDashboard {

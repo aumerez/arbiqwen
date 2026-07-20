@@ -12,6 +12,10 @@ export interface DocumentFile {
 
 export interface DocumentsClient {
   getFile(id: number | string): Promise<DocumentFile>;
+  /** Fetch the document's raw bytes (GET /documents/{id}/file) for a browser
+   *  save. Returns a Blob; the caller triggers the download. The endpoint needs
+   *  the bearer token, so a plain anchor href won't work. */
+  getBlob(id: number | string): Promise<Blob>;
 }
 
 const defaultFetch: typeof fetch = (input, init) => globalThis.fetch(input, init);
@@ -49,6 +53,23 @@ export function createDocumentsClient(config: DocumentsClientConfig = {}): Docum
       }
       const text = await response.text();
       return { contentType, text };
+    },
+
+    async getBlob(id) {
+      const headers: Record<string, string> = {};
+      const token = config.getToken?.();
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      let response: Response;
+      try {
+        response = await doFetch(`${base}/documents/${encodeURIComponent(String(id))}/file`, { headers });
+      } catch {
+        throw new BrowserReadError('network', 'Network request failed');
+      }
+      if (!response.ok) {
+        throw new BrowserReadError('http', `Request failed with status ${response.status}`, response.status);
+      }
+      return response.blob();
     },
   };
 }
