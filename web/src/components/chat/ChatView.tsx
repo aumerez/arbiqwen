@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { ChatMessageView } from '../../chat/types';
+import type { DocumentsClient } from '../../api/http/documentsClient';
 import { ChatMessageBubble } from './ChatMessageBubble';
 import { ChatComposer } from './ChatComposer';
 
@@ -15,9 +16,13 @@ interface ChatViewProps {
   /** Optional composer seed (e.g. from an agent template). The nonce re-applies
    *  the same text when it's picked again. */
   draft?: { text: string; nonce: number };
+  /** Enables the composer's attach flow. */
+  documentsClient?: DocumentsClient;
+  /** Scopes uploaded attachments to the active project. */
+  projectId?: number | null;
 }
 
-export function ChatView({ messages, sending, error, onSend, onStop, draft }: ChatViewProps) {
+export function ChatView({ messages, sending, error, onSend, onStop, draft, documentsClient, projectId }: ChatViewProps) {
   const endRef = useRef<HTMLDivElement>(null);
   let lastAssistantIndex = -1;
   messages.forEach((m, i) => {
@@ -61,7 +66,14 @@ export function ChatView({ messages, sending, error, onSend, onStop, draft }: Ch
         </p>
       )}
 
-      <ChatComposer sending={sending} onSend={onSend} onStop={onStop} draft={draft} />
+      <ChatComposer
+        sending={sending}
+        onSend={onSend}
+        onStop={onStop}
+        draft={draft}
+        documentsClient={documentsClient}
+        projectId={projectId}
+      />
     </section>
   );
 }

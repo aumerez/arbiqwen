@@ -173,6 +173,8 @@ export function AuthenticatedApp({ email, onLogout }: { email?: string; onLogout
           onSend={convo.send}
           onStop={convo.stop}
           draft={draft}
+          documentsClient={documentsClient}
+          projectId={projects.currentProject?.id ?? null}
         />
       )}
 
