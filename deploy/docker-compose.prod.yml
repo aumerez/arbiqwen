@@ -1,0 +1,80 @@
+# Production stack for a single Alibaba Cloud ECS instance.
+#
+#   cd deploy && cp .env.prod.example .env   # then fill in secrets
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# nginx (web) is the only service published to the host (:80). The backend,
+# Postgres, Qdrant, and Redis are reachable only on the internal compose
+# network. LLM calls go to Alibaba Model Studio (Qwen) — set in .env.
+
+name: arbi
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-arbi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-arbi}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-arbi} -d ${POSTGRES_DB:-arbi}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ../backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Service-network connection URLs override anything in .env.
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-arbi}:${POSTGRES_PASSWORD:-arbi}@postgres:5432/${POSTGRES_DB:-arbi}
+      QDRANT_URL: http://qdrant:6333
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      redis:
+        condition: service_started
+    volumes:
+      - uploads:/app/uploads
+    # Apply migrations, then serve. Seed separately (see DEPLOY.md).
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  uploads:
