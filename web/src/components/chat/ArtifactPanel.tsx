@@ -151,8 +151,15 @@ export function ArtifactPanel() {
         {loading ? (
           <p className="artifact__loading">Loading preview…</p>
         ) : url ? (
-          <iframe className="artifact__frame" title={title} src={url} />
+          // Blob URL of a fetched document, gated to PDF/image content types in
+          // documentsClient.getFile. Sandboxed: allow-same-origin lets the
+          // browser's native PDF/image viewer render the same-origin blob, but
+          // withholding allow-scripts means no embedded script can run, reach
+          // the parent, or read app state.
+          <iframe className="artifact__frame" title={title} src={url} sandbox="allow-same-origin" />
         ) : isHtml ? (
+          // Untrusted HTML (skill output). Fully sandboxed: no scripts, no
+          // same-origin, no top navigation, no popups.
           <iframe className="artifact__frame" title={title} srcDoc={text} sandbox="" />
         ) : hasContent ? (
           <div className="artifact__md chat-msg__md">

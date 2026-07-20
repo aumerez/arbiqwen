@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react';
 import { AlertCircle, Check, FileText, Loader2, Paperclip, Send, Square, X } from 'lucide-react';
-import type { DocumentsClient } from '../../api/http/documentsClient';
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_MB, type DocumentsClient } from '../../api/http/documentsClient';
 
 // Message composer, ported from the desktop ChatInput: a rounded container with
 // the chip strip on top, the auto-growing textarea in the middle, and a controls
@@ -113,6 +113,21 @@ export function ChatComposer({ sending, onSend, onStop, draft, documentsClient, 
     if (!documentsClient) return;
     for (const file of files) {
       const tempId = `chip_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      // Reject oversized files before any upload request: stage a failed chip so
+      // the user sees why, and never call the network.
+      if (file.size > MAX_UPLOAD_BYTES) {
+        setStaged((prev) => [
+          ...prev,
+          {
+            tempId,
+            name: file.name,
+            size: file.size,
+            status: 'error',
+            errorMessage: `File is larger than ${MAX_UPLOAD_MB} MB`,
+          },
+        ]);
+        continue;
+      }
       setStaged((prev) => [...prev, { tempId, name: file.name, size: file.size, status: 'uploading' }]);
       try {
         const doc = await documentsClient.upload(file, projectId);
