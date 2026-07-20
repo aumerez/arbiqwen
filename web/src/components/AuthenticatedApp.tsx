@@ -45,7 +45,7 @@ const SECTION_LABELS: Record<string, string> = {
   documents: 'Documents',
 };
 
-export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
+export function AuthenticatedApp({ email, onLogout }: { email?: string; onLogout: () => void }) {
   const baseUrl = getApiBaseUrl();
   const adapter = useMemo(() => createReadAdapter({ baseUrl, getToken }), [baseUrl]);
   const chatClient = useMemo(() => createChatClient({ baseUrl, getToken }), [baseUrl]);
@@ -93,12 +93,19 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
   // My Space is the home, not a listed project — the grid shows the rest.
   const otherProjects = projects.projects.filter((p) => !p.isDefault);
 
+  const workspaceName = projects.currentProject?.name ?? 'My Space';
   const sectionLabel =
+    active === 'home' ? workspaceName : active === 'chat' ? workspaceName : SECTION_LABELS[active] ?? '';
+
+  // Breadcrumb segments, matching the desktop TopBar: workspace, then the
+  // active chat's title when the Assistant is open.
+  const currentChat = convo.currentChatId != null ? convo.chats.find((c) => c.id === convo.currentChatId) : null;
+  const crumbs =
     active === 'home'
-      ? (projects.currentProject?.name ?? 'My Space')
+      ? [workspaceName]
       : active === 'chat'
-        ? (projects.currentProject?.name ?? 'Assistant')
-        : SECTION_LABELS[active] ?? '';
+        ? [workspaceName, currentChat?.title || 'New conversation']
+        : [SECTION_LABELS[active] ?? ''];
 
   // Sections backed by the read adapter's loading/error/ready state. Projects
   // and Documents fetch on their own, so they're excluded here.
@@ -132,7 +139,15 @@ export function AuthenticatedApp({ onLogout }: { onLogout: () => void }) {
 
   return (
     <ArtifactPanelProvider artifactsClient={artifactsClient} documentsClient={documentsClient}>
-      <AppShell sidebar={sidebar} sectionLabel={sectionLabel} onLogout={onLogout}>
+      <AppShell
+        sidebar={sidebar}
+        sectionLabel={sectionLabel}
+        crumbs={crumbs}
+        email={email}
+        tenantName="Arbi Browser Demo"
+        docCount={documents.length}
+        onLogout={onLogout}
+      >
       {active === 'home' && projects.currentProject && (
         <ProjectDashboard
           project={projects.currentProject}

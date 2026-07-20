@@ -8,13 +8,17 @@ import { clearToken, getToken, setToken } from './session';
 // clears the in-memory token and returns to sign-in. Nothing is persisted.
 export default function App() {
   const [token, setTokenState] = useState<string | null>(getToken());
+  // Held in memory only (like the token) so the top bar can show the signed-in
+  // identity the way the desktop does; cleared on sign out.
+  const [email, setEmail] = useState('');
 
   if (!token) {
     return (
       <LoginScreen
-        onSuccess={(next) => {
+        onSuccess={(next, signedInEmail) => {
           setToken(next);
           setTokenState(next);
+          setEmail(signedInEmail);
         }}
       />
     );
@@ -22,9 +26,11 @@ export default function App() {
 
   return (
     <AuthenticatedApp
+      email={email}
       onLogout={() => {
         clearToken();
         setTokenState(null);
+        setEmail('');
       }}
     />
   );

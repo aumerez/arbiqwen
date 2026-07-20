@@ -99,6 +99,23 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.topbar__crumb-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.topbar__crumb-seg > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .topbar__crumb-sep {
@@ -108,9 +125,6 @@
 
 .topbar__crumb-current {
   color: #cbd5e1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .topbar__spacer {
@@ -144,25 +158,93 @@
   color: #f1f5f9;
 }
 
-.topbar__logout {
-  margin-left: 12px;
+/* Vertical separator between tenant and user area (desktop .sep). */
+.topbar__sep {
+  width: 1px;
+  height: 16px;
   flex-shrink: 0;
-  white-space: nowrap;
-  padding: 4px 10px;
-  border: 1px solid rgba(245, 243, 238, 0.15);
-  background: transparent;
-  color: #cbd5e1;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: border-color var(--transition), color var(--transition);
+  background: rgba(245, 243, 238, 0.1);
 }
 
-.topbar__logout:hover {
-  border-color: var(--accent);
+/* User area — avatar + email button with a sign-out dropdown. */
+.topbar__user {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.topbar__user-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.topbar__user-button:hover {
+  background: var(--bg-hover);
+  color: #cbd5e1;
+}
+
+.topbar__user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent-muted);
   color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.topbar__user-email {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar__user-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 200;
+  min-width: 140px;
+  padding: 4px;
+  background: #334155;
+  border: 1px solid rgba(245, 243, 238, 0.1);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.topbar__user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.topbar__user-menu-item:hover {
+  background: #475569;
+  color: #f1f5f9;
 }
 
 /* ── Sidebar (Mono chrome) ─────────────────────────────────────────── */
@@ -418,6 +500,16 @@
   color: var(--border-strong);
 }
 
+/* Environment pill — mirrors the desktop EnvPill on the right of the bar. */
+.statusbar__pill {
+  padding: 1px 8px;
+  border-radius: var(--radius-md);
+  background: var(--accent-muted);
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
 .statusbar__spacer {
   flex: 1;
 }
@@ -437,8 +529,8 @@
     display: none;
   }
 
-  .topbar__logout {
-    margin-left: 8px;
+  .topbar__user-email {
+    display: none;
   }
 
   .shell__sidebar {

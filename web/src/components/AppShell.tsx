@@ -5,6 +5,11 @@ import { StatusBar } from './StatusBar';
 interface AppShellProps {
   sidebar: ReactNode;
   sectionLabel: string;
+  /** Breadcrumb segments for the top bar (workspace / chat …). */
+  crumbs?: string[];
+  email?: string;
+  tenantName?: string;
+  docCount?: number | null;
   onLogout?: () => void;
   children: ReactNode;
 }
@@ -13,7 +18,16 @@ interface AppShellProps {
 // status bar at the bottom. The sidebar is composed by the caller so it can carry
 // project/conversation state. On narrow (phone/tablet) viewports the sidebar
 // collapses to an off-canvas drawer toggled from the top-bar hamburger.
-export function AppShell({ sidebar, sectionLabel, onLogout, children }: AppShellProps) {
+export function AppShell({
+  sidebar,
+  sectionLabel,
+  crumbs,
+  email,
+  tenantName,
+  docCount,
+  onLogout,
+  children,
+}: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Any interactive control inside the drawer (project, conversation, nav link)
@@ -27,7 +41,14 @@ export function AppShell({ sidebar, sectionLabel, onLogout, children }: AppShell
 
   return (
     <div className="shell">
-      <TopBar section={sectionLabel} onLogout={onLogout} onToggleSidebar={() => setDrawerOpen((v) => !v)} />
+      <TopBar
+        section={sectionLabel}
+        crumbs={crumbs}
+        email={email}
+        tenantName={tenantName}
+        onLogout={onLogout}
+        onToggleSidebar={() => setDrawerOpen((v) => !v)}
+      />
       <div className="shell__body">
         {drawerOpen && <div className="shell__backdrop" onClick={() => setDrawerOpen(false)} aria-hidden="true" />}
         <div
@@ -38,7 +59,7 @@ export function AppShell({ sidebar, sectionLabel, onLogout, children }: AppShell
         </div>
         <main className="shell__content">{children}</main>
       </div>
-      <StatusBar />
+      <StatusBar docCount={docCount} />
     </div>
   );
 }
