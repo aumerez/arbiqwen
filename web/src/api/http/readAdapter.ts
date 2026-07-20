@@ -18,6 +18,7 @@ export interface IntegrationInstanceView {
   description?: string;
   category?: string;
   iconName?: string;
+  version?: string;
   configMode?: string;
   status?: string;
   metadata?: unknown;
@@ -142,6 +143,7 @@ function shapeInstance(raw: Raw): IntegrationInstanceView {
     description: raw.description as string | undefined,
     category: raw.category as string | undefined,
     iconName: raw.icon_name as string | undefined,
+    version: raw.version as string | undefined,
     configMode: raw.config_mode as string | undefined,
     status: raw.status as string | undefined,
     metadata: raw.metadata,

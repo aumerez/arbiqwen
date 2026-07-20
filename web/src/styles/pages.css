@@ -71,6 +71,13 @@
   gap: 6px;
 }
 
+.card__version {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
 .card__desc {
   margin: 0;
   font-size: 12px;

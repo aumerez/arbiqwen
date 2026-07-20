@@ -1,29 +1,40 @@
-import { Check, Plug } from 'lucide-react';
+import { CircleCheck } from 'lucide-react';
 import type { IntegrationDemo } from '../viewModels';
+import { integrationIcon } from '../integrations/integrationIcons';
 
-// Read-only integration row, styled like the desktop IntegrationCard:
-// Mono icon chip, name + description, and a non-secret status indicator.
-// No connect/edit/execute controls.
+// Read-only integration row, ported from the desktop IntegrationCard: the
+// driver-specific icon chip, the instance alias (with a version chip), a
+// subtitle of driver name + workspace, and a non-secret status indicator
+// (CircleCheck when connected, a "Disconnected" badge otherwise). No
+// connect/manage/delete/execute controls — those stay out of the read-only demo.
 export function IntegrationCard({ item }: { item: IntegrationDemo }) {
   const connected = item.status === 'Connected';
+  const Icon = integrationIcon(item.iconName);
+
+  // Subtitle composition mirrors the desktop card: driver name and/or the
+  // workspace label, falling back to the plain description.
+  const subtitleParts = [item.driverName, item.workspaceName].filter(Boolean);
+  const subtitle = subtitleParts.length > 0 ? subtitleParts.join(' — ') : item.description;
+
   return (
     <li className="card" data-card="integration">
       <span className="card__icon">
-        <Plug size={18} strokeWidth={1.5} />
+        <Icon size={18} strokeWidth={1.5} />
       </span>
       <div className="card__content">
-        <p className="card__name">{item.name}</p>
-        <p className="card__desc">{item.description}</p>
+        <p className="card__name">
+          {item.name}
+          {item.version && <span className="card__version">v{item.version}</span>}
+        </p>
+        {subtitle && <p className="card__desc">{subtitle}</p>}
       </div>
       <div className="card__meta">
-        {typeof item.toolCount === 'number' && <span className="card__metric">{item.toolCount} tools</span>}
-        {item.lastActivity && <span className="card__metric">{item.lastActivity}</span>}
         {connected ? (
           <span className="connected-check" title="Connected" aria-label="Connected">
-            <Check size={16} strokeWidth={2} />
+            <CircleCheck size={16} strokeWidth={2} />
           </span>
         ) : (
-          <span className="badge badge--off">{item.status}</span>
+          <span className="badge badge--off">Disconnected</span>
         )}
       </div>
     </li>

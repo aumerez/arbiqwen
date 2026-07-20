@@ -5,15 +5,20 @@
 /** A read-only integration entry as shown in the preview. */
 export interface IntegrationDemo {
   id: string;
+  /** Primary line — the instance alias (desktop's instanceAlias). */
   name: string;
   description: string;
   category: string;
+  /** lucide icon name from the driver (desktop iconName). Falls back to Puzzle. */
+  iconName?: string;
+  /** Driver version, rendered as a "vX" chip next to the name. */
+  version?: string;
+  /** Driver display name — shown as a subtitle when it differs from the alias. */
+  driverName?: string;
+  /** Non-secret workspace label from metadata, appended to the subtitle. */
+  workspaceName?: string;
   /** Non-secret connection state for display only. */
-  status: 'Connected' | 'Available';
-  /** Optional count of read-only tools the integration surfaces. */
-  toolCount?: number;
-  /** Optional human-readable last-activity label. */
-  lastActivity?: string;
+  status: 'Connected' | 'Disconnected';
 }
 
 /** A read-only skill entry as shown in the preview. */

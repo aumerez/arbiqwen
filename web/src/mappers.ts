@@ -14,13 +14,25 @@ function isConnected(status: string | undefined, connectedAt: string | null | un
 }
 
 export function toIntegrationCards(view: IntegrationListView): IntegrationDemo[] {
-  return view.instances.map((inst) => ({
-    id: String(inst.id),
-    name: inst.instanceAlias || inst.name || inst.key || 'Integration',
-    description: inst.description ?? '',
-    category: inst.category ?? 'Integration',
-    status: isConnected(inst.status, inst.connectedAt) ? 'Connected' : 'Available',
-  }));
+  return view.instances.map((inst) => {
+    const alias = inst.instanceAlias || inst.name || inst.key || 'Integration';
+    const driverName = inst.name && inst.name !== alias ? inst.name : undefined;
+    // workspace_name is a non-secret display label some drivers report; the
+    // desktop card appends it to the subtitle. Read it defensively.
+    const meta = (inst.metadata ?? null) as { workspace_name?: unknown } | null;
+    const workspaceName = typeof meta?.workspace_name === 'string' ? meta.workspace_name : undefined;
+    return {
+      id: String(inst.id),
+      name: alias,
+      description: inst.description ?? '',
+      category: inst.category ?? 'Integration',
+      iconName: inst.iconName,
+      version: inst.version || undefined,
+      driverName,
+      workspaceName,
+      status: isConnected(inst.status, inst.connectedAt) ? 'Connected' : 'Disconnected',
+    };
+  });
 }
 
 export function toSkillCards(views: SkillView[]): SkillDemo[] {
